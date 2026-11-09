@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="is">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d100e">
+  <meta name="description" content="Finndu næsta góða plan. Tilboð, tónlist, afþreying og útivera á einum stað.">
+  <title>Hvað á að gera? · Finndu þitt næsta plan</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="feed.css">
+  <link rel="stylesheet" href="dark.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M5 5l14 14M5 19 19 5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="m20.8 4.6 0 0a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 5h2m4 0h2"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5Z"/></symbol>
+  </svg>
+  <a class="skip-link" href="#main">Fara beint í efni</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#discover" aria-label="Hvað á að gera? Forsíða"><span class="brand-mark"><svg><use href="#i-spark"/></svg></span><span>Hvað á<br>að gera<span class="brand-question">?</span></span></a>
+      <nav class="main-nav" aria-label="Aðalvalmynd">
+        <button class="nav-link" data-nav="discover" aria-current="page"><svg><use href="#i-compass"/></svg><span>Fyrir þig</span></button>
+        <button class="nav-link" data-nav="events"><svg><use href="#i-calendar"/></svg><span>Viðburðir</span></button>
+        <button class="nav-link" data-nav="map"><svg><use href="#i-map"/></svg><span>Kortið</span></button>
+        <button class="nav-link" data-nav="plan"><svg><use href="#i-check"/></svg><span>Mitt plan</span><span class="nav-count" id="plan-count">0</span></button>
+      </nav>
+      <div class="header-actions"><button class="location-button" data-nav="map"><svg><use href="#i-pin"/></svg>Reykjavík<svg class="location-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></button><button class="header-random icon-button" data-action="random" aria-label="Láta tilviljunina velja plan" title="Veldu fyrir mig"><svg><use href="#i-spark"/></svg></button><button class="icon-button favorites-button" data-action="favorites" aria-label="Sýna uppáhald" title="Uppáhaldið þitt"><svg><use href="#i-heart"/></svg><span id="favorite-count" class="favorite-count" hidden>0</span></button></div>
+    </div>
+  </header>
+  <main id="main" tabindex="-1">
+    <section id="view-discover" class="view page-shell" aria-label="Fyrir þig">
+      <div class="feed-layout">
+        <div class="feed-column">
+          <div class="stories-bar"><div id="category-filters" class="category-filters" aria-label="Flokka eftir áhuga"></div></div>
+          <section class="discovery-section" aria-labelledby="discover-title">
+            <div class="feed-toolbar"><div class="feed-tabs"><h1 id="discover-title">Fyrir þig</h1><button data-nav="events">Viðburðir</button></div><label class="search-field"><svg><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="Leita…" aria-label="Leita að tilboði, viðburði eða stað" autocomplete="off"><kbd>/</kbd></label></div>
+            <div class="feed-context"><span><span class="live-dot"></span>Góðar hugmyndir í Reykjavík</span><span class="results-count" id="offer-count" role="status" aria-live="polite"></span></div>
+            <div id="active-filters" class="active-filters" hidden></div>
+            <div id="offer-grid" class="offer-grid"></div>
+            <div id="empty-offers" class="empty-state" hidden><span class="empty-icon"><svg><use href="#i-search"/></svg></span><h2>Ekkert plan fannst í þetta sinn.</h2><p>Prófaðu annað leitarorð eða skoðaðu alla flokka.</p><button class="button button-dark" id="reset-filters">Sýna allt</button></div>
+          </section>
+          <div class="feed-end"><svg><use href="#i-check"/></svg><strong>Þú ert með allar hugmyndirnar.</strong><p>Næsta skref? Veldu eitthvað skemmtilegt.</p><button class="text-button" data-action="random">Veldu fyrir mig<svg><use href="#i-spark"/></svg></button></div>
+        </div>
+        <aside class="feed-aside" aria-label="Fleiri hugmyndir">
+          <div class="feed-welcome"><span class="welcome-symbol"><svg><use href="#i-spark"/></svg></span><div><strong>Góður dagur byrjar hér.</strong><p>Finndu þitt næsta plan.</p></div></div>
+          <section class="aside-random"><span class="aside-random-symbol" aria-hidden="true"><svg><use href="#i-spark"/></svg></span><span class="eyebrow">EKKERT ÁKVEÐIÐ?</span><h2>Látum daginn<br>koma á óvart.</h2><p>Smá tilviljun gæti orðið að besta plani dagsins.</p><button class="button button-dark" data-action="random">Veldu fyrir mig<svg><use href="#i-arrow"/></svg></button></section>
+          <section class="aside-places"><div class="aside-heading"><h2>Næsta stopp?</h2><button data-nav="map">Sjá á korti</button></div><button class="aside-place" data-open="concert"><img src="assets/concert.jpg" alt="" width="44" height="44"><span><strong>Hljómur</strong><small>Lifandi tónlist</small></span><svg><use href="#i-arrow"/></svg></button><button class="aside-place" data-open="pool"><img src="assets/pool.svg" alt="" width="44" height="44"><span><strong>Hlýja laug</strong><small>Stund fyrir þig</small></span><svg><use href="#i-arrow"/></svg></button><button class="aside-place" data-open="walk"><img src="assets/walk.svg" alt="" width="44" height="44"><span><strong>Sjávarsíðan</strong><small>Ferskt loft og nýtt sjónarhorn</small></span><svg><use href="#i-arrow"/></svg></button></section>
+          <button class="aside-plan" data-nav="plan"><svg><use href="#i-calendar"/></svg><span><strong>Þitt eigið plan</strong><small>Hugmyndirnar sem þú vilt gera að veruleika.</small></span><svg><use href="#i-arrow"/></svg></button>
+          <p class="aside-disclaimer">Hvað á að gera? · AI concept<br>Sýnigögn · Engar raunverulegar bókanir</p>
+        </aside>
+      </div>
+    </section>
+    <section id="view-events" class="view page-shell secondary-page" aria-labelledby="events-title" hidden>
+      <div class="page-intro"><p class="eyebrow"><span class="live-dot"></span>EITTHVAÐ TIL AÐ HLAKKA TIL</p><h1 id="events-title" tabindex="-1">Vertu þar sem<br><em>eitthvað gerist.</em></h1><p>Tónlist, bíó og góðar stundir. Finndu næsta tilefni til að fara út.</p></div>
+      <div class="section-heading events-heading"><div id="event-filters" class="category-filters" aria-label="Velja dag"></div><span id="event-count" class="results-count" role="status"></span></div><div id="event-list" class="offer-grid event-grid"></div>
+    </section>
+    <section id="view-map" class="view page-shell secondary-page" aria-labelledby="map-title" hidden>
+      <div class="section-heading map-heading"><div><p class="eyebrow"><span class="live-dot"></span>SMÁ ÚT FYRIR HÚSSINS DYR</p><h1 id="map-title" tabindex="-1">Gott plan. <em>Rétt hjá.</em></h1><p>Finndu hugmynd á kortinu og skoðaðu staðinn.</p></div><span class="map-key"><span></span>Hugmyndir í Reykjavík</span></div>
+      <div class="map-workspace"><div class="map-sidebar"><div class="map-sidebar-heading"><h2>Staðir til að prófa</h2><span>08</span></div><div id="map-list" class="map-list"></div></div><div class="map-canvas" id="city-map" aria-label="Skýringarkort af Reykjavík með dæmastöðum">
+        <svg class="city-illustration" viewBox="0 0 900 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><pattern id="map-grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0v48" fill="none" stroke="#d9dfd0" stroke-width="1"/></pattern><pattern id="water-pattern" width="35" height="35" patternUnits="userSpaceOnUse"><path d="M5 15q7-4 14 0" fill="none" stroke="#a7c8c6" stroke-width="1.4"/></pattern></defs><path fill="#e8edde" d="M0 0h900v700H0z"/><path fill="url(#map-grid)" d="M0 0h900v700H0z"/><path fill="#bfd8d8" d="M0 0h900v180c-120-48-161 29-242 4-82-25-109-86-189-66-89 23-70 105-163 113-99 9-123 25-125 82-2 79-67 88-181 71Z"/><path fill="url(#water-pattern)" d="M0 0h900v180c-120-48-161 29-242 4-82-25-109-86-189-66-89 23-70 105-163 113-99 9-123 25-125 82-2 79-67 88-181 71Z"/><path d="M68 430 272 302 517 260 900 310M267 700l93-319 97-244M0 566l260-81 326-130 314 21M184 700l61-231 143-177 104-87M0 657l412-92 488-28M619 700l-81-280 68-238M900 643l-258-167-275-45M401 700l21-188 202-238" fill="none" stroke="#fffefa" stroke-width="19"/><path d="M68 430 272 302 517 260 900 310M267 700l93-319 97-244M0 566l260-81 326-130 314 21M0 657l412-92 488-28" fill="none" stroke="#e9ddbc" stroke-width="4"/><path d="M355 502c-59 6-92 49-76 97 15 45 78 33 99-10s22-80-23-87" fill="#b6d4d1" stroke="#f6f8ef" stroke-width="8"/><path d="m695 393 119 28-15 83-123-24Zm-139 191 80 11 37 105H533Zm-169-244 32-40 46 25-29 48Z" fill="#c8d8b5"/><g fill="#6a8172" font-family="system-ui,sans-serif" font-size="13" letter-spacing="2"><text x="320" y="67" fill="#658e92">FAXAFLÓI</text><text x="298" y="284">MIÐBÆR</text><text x="593" y="345">LAUGAVEGUR</text><text x="79" y="473">VESTURBÆR</text><text x="325" y="561" transform="rotate(-66 325 561)" font-size="10">TJÖRNIN</text><text x="593" y="627">HLÍÐAR</text></g><g transform="translate(460 399)" stroke="#93a285" stroke-width="2" fill="#d3dcca"><path d="m0 19 12-29 12 29v23H0Z"/><path d="M12-29v54m-5 4h10"/><rect x="-11" y="24" width="46" height="20" rx="2"/></g></svg>
+        <div class="map-label"><svg><use href="#i-pin"/></svg>Reykjavík<span>SKÝRINGARKORT</span></div><div id="map-pins" class="map-pins"></div><div id="map-detail" class="map-detail"></div><span class="map-disclaimer">Staðsetningar eru sýnidæmi · ekki leiðsögukort</span>
+      </div></div>
+    </section>
+    <section id="view-plan" class="view page-shell secondary-page" aria-labelledby="plan-title" hidden>
+      <div class="section-heading plan-heading"><div><p class="eyebrow"><span class="live-dot"></span>HUGMYNDIN ER ORÐIN AÐ PLANI</p><h1 id="plan-title" tabindex="-1">Dagurinn þinn.<br><em>Á þínum forsendum.</em></h1><p>Allt sem þig langar að gera, á einum stað.</p></div><button id="export-plan" class="button button-outline" disabled><svg><use href="#i-download"/></svg>Sækja í dagatal</button></div>
+      <div class="plan-layout"><div><div id="empty-plan" class="empty-state plan-empty"><span class="empty-icon"><svg><use href="#i-calendar"/></svg></span><h2>Góður dagur byrjar á einni hugmynd.</h2><p>Veldu eitthvað sem þér líst á, finndu tíma og bættu því við planið þitt.</p><button class="button button-dark" data-nav="discover">Finna mitt fyrsta plan<svg><use href="#i-arrow"/></svg></button></div><div id="plan-list" class="plan-list"></div></div><aside class="plan-aside"><div id="plan-summary" class="plan-summary"></div><div class="plan-notice"><svg><use href="#i-spark"/></svg><h3>Smá plan, meiri gleði.</h3><p>Planið vistast í þessum vafra. Þú getur breytt tímanum eða tekið það með þér í dagatalið.</p><p class="demo-note">Að vista plan jafngildir ekki bókun. Verð og viðburðir eru sýnigögn.</p></div></aside></div>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="footer-inner"><a href="#discover" class="footer-brand"><svg><use href="#i-spark"/></svg>Hvað á að gera?</a><span>Gerðu meira úr deginum.</span><small>AI concept · Sýnigögn · Gert fyrir Reykjavík</small></div></footer>
+  <dialog id="detail-dialog" class="detail-dialog" aria-label="Nánari upplýsingar og plan"><div id="detail-content"></div></dialog>
+  <dialog id="random-dialog" class="random-dialog" aria-labelledby="random-title"><button class="dialog-close" data-close aria-label="Loka hugmyndavali"><svg><use href="#i-close"/></svg></button><div class="random-header"><p class="eyebrow">SMÁ TILVILJUN, GOTT PLAN</p><h2 id="random-title">Hvert leiðir<br><em>dagurinn þig?</em></h2><p>Stundum þarf bara að láta vaða.</p></div><div class="wheel-stage"><span class="wheel-pointer"></span><div class="random-wheel" id="random-wheel"><span>MATUR</span><span>TÓNLIST</span><span>AFÞREYING</span><span>ÚTIVERA</span><svg><use href="#i-spark"/></svg></div></div><div class="random-fields"><label>Ég er í stuði fyrir<select id="random-category"><option value="all">Hvað sem er</option><option value="matur">Góðan mat</option><option value="tonlist">Lifandi tónlist</option><option value="afthreying">Afþreyingu</option><option value="utivera">Útiveru</option></select></label><label>Áætlað verð fyrir planið<select id="random-budget"><option value="all">Allt kemur til greina</option><option value="2500">Allt að 2.500 kr.</option><option value="5000">Allt að 5.000 kr.</option><option value="0">Eitthvað ókeypis</option></select></label></div><button id="spin-button" class="button button-dark spin-button"><svg><use href="#i-spark"/></svg>Finndu plan fyrir mig</button><div id="random-result" class="random-result" aria-live="polite"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><div class="noscript-notice">Kveiktu á JavaScript til að skoða tilboð og vista plan. Þetta er staðbundin frumgerð með sýnigögnum.</div></noscript>
+</body>
+</html>
