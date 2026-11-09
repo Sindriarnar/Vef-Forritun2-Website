@@ -1,0 +1,34 @@
+{
+  "name": "hvad-a-ad-gera",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "scrape": "tsx scraper/index.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cheerio": "^1.2.0",
+    "leaflet": "^1.9.4",
+    "next": "16.4.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "robots-parser": "^3.0.1"
+  },
+  "devDependencies": {
+    "@next/env": "^16.4.5",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
