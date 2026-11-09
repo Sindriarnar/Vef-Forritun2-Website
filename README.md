@@ -51,24 +51,43 @@ git add --dry-run .
 
 ### The website
 
-The look follows `Concept og Wireframe/AI concept` (dark, photo-first feed):
+The layout follows `Concept og Wireframe/AI concept` (nav rail on desktop, bottom bar
+on phones, photo feed with a sidebar). The visual style is our own: a warm light
+background with one coral accent, the Schibsted Grotesk typeface, and plain
+information instead of slogans. All colours are tokens at the top of
+`src/app/globals.css`, so the theme is easy to change.
 
 | Page | What it shows |
 | --- | --- |
-| `/` Fyrir þig | Feed mixing deals, today's movies, happy hours, pools/activities open today and events in the next 2 days. Category circles, search (`/` to focus), "Veldu fyrir mig" (random pick) |
-| `/events` Viðburðir | Upcoming events with filters: í dag, á morgun, um helgina, næstu 7 daga |
-| `/map` Kortið | OpenStreetMap map with every place we have coordinates for |
-| `/plan` Mitt plan | Things you put on your plan, and things you saved (♥) |
+| `/` Í dag | Deals and events as photo posts, with compact sections in between: activities open today (exhibitions, climbing, bowling, skating, laser tag...), a poster shelf of today's movies, our own ideas, happy hours and pools. Category circles, search (`/` to focus), "Veldu fyrir mig" (random pick) |
+| `/events` Viðburðir | Upcoming events as a list grouped by day, filters: í dag, á morgun, um helgina, næstu 7 daga |
+| `/map` Kort | OpenStreetMap map with every place we have coordinates for |
+| `/plan` Planið | Things you put on your plan, and things you saved (♥) |
 
-"Vista" and "Setja á planið" are stored in the browser (`localStorage`), like in the concept, so no accounts are needed yet.
-The feed is built in `src/lib/feed.ts` (database rows → `FeedItem`), the styles are in `src/app/globals.css`.
+"Vista" and "Á planið" are stored in the browser (`localStorage`), so no accounts are needed yet.
+
+Where things are:
+
+- `src/lib/feed.ts` turns database rows into `FeedItem`s (all text and dates are formatted on the server).
+- `src/lib/format.ts` has Icelandic dates/prices without `Intl`, so server and browser render exactly the same text.
+- `src/components/` has the UI: `Feed`, `PostCard`, `FeedModules` (movie shelf, place lists), `IdeaCards`, `EventsView`, `PlanView`, `PlacesMap`, `DetailDialog`.
+
+### Our own ideas (Hugmyndabankinn)
+
+`scraper/content/ideas.ts` is a hand-written list of free or cheap things to do
+(walks, game nights, aurora hunting, a home movie night...). Edit it freely:
+each idea has a title, a short text, tags (`Frítt`, `Úti`, `Vinahópur`...), an
+optional list of months it's shown in, and an optional link. `npm run scrape`
+loads the ideas that are in season into the database, and the site shows them as
+coloured cards (a different order each day).
+- `src/app/globals.css` has all styles, with design tokens (colours, radii) at the top.
 
 ### How the data flows
 
 ```
-kvikmyndir.is, bioparadis.is, smarabio.is ─┐
-tix.is, hopkaup.is                        ─┼─► scraper/ (Node + cheerio) ─► SQLite (data/hvad.db) ─► SQL views ─► Next.js page
-reykjavik.is (sundlaugar), happyhour.is   ─┘
+cinemas, tix.is, library, hopkaup.is ─┐
+pools, skating, bowling, climbing,    ─┼─► scraper/ (Node + cheerio) ─► SQLite (data/hvad.db) ─► SQL views ─► Next.js page
+art museum, happyhour.is, our ideas  ─┘
 ```
 
 - **`db/schema.sql`**: tables (`sources`, `venues`, `items`, `occurrences`, `scrape_runs`) and views (`v_current_items`, `v_today`, `v_upcoming`, `v_open_today`, `v_active_deals`). It runs automatically whenever the database is opened.
@@ -90,9 +109,19 @@ reykjavik.is (sundlaugar), happyhour.is   ─┘
 | hopkaup.is | Restaurant and activity deals, with price, original price and discount % |
 | reykjavik.is | Opening hours of Reykjavík's 8 pools (incl. holiday hours), address, photo, description |
 | happyhour.is | Happy hours: times, weekdays, address and map coordinates |
+| borgarbokasafn.is | City Library events: craft evenings, writing workshops, talks... (events only for small children are skipped) |
+| listasafnreykjavikur.is | Current exhibitions in Hafnarhús, Kjarvalsstaðir and Ásmundarsafn, with each building's opening hours |
+| skautaholl.is | Public skating sessions at Skautahöllin í Laugardal |
+| keiluhollin.is | Bowling hours at Keiluhöllin Egilshöll |
+| klifurhusid.is | Opening hours of Klifurhúsið (climbing/bouldering) |
+| `scraper/content/ideas.ts` | Our own ideas (not scraped) |
 
 ### Adding a new source
 
 1. Create `scraper/sources/<name>.ts` that exports a `Source` (see `scraper/types.ts`).
 2. Register it in `scraper/sources/index.ts`.
 3. Check the site's `robots.txt` and terms first, and keep requests to a minimum.
+
+A place that just publishes weekly opening hours (like the skating rink or the
+bowling alley) is only a few lines in `scraper/sources/venues.ts`: the page URL
+and the words that come right before the hours.

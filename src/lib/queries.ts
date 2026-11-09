@@ -66,6 +66,7 @@ export interface OpenPlace {
   url: string;
   image_url: string | null;
   price_isk: number | null;
+  tags: string | null;
   address: string | null;
   lat: number | null;
   lng: number | null;
@@ -73,6 +74,15 @@ export interface OpenPlace {
   starts_at: string; // the current or next time slot today
   ends_at: string;
   is_open_now: 0 | 1;
+}
+
+export interface IdeaRow {
+  item_id: number;
+  external_id: string;
+  title: string;
+  description: string | null;
+  url: string;
+  tags: string | null;
 }
 
 export interface MapPlace {
@@ -204,7 +214,7 @@ export async function getOpenToday(categories: OpenPlace["category"][]): Promise
   return getDb()
     .prepare(
       `SELECT o.item_id, o.category, o.title, o.subtitle, o.description, o.provider, o.url,
-              o.image_url, i.price_isk, o.address, o.lat, o.lng, s.name AS source_name,
+              o.image_url, i.price_isk, i.tags, o.address, o.lat, o.lng, s.name AS source_name,
               MIN(o.starts_at) AS starts_at, o.ends_at, o.is_open_now
          FROM v_open_today o
          JOIN items i   ON i.id = o.item_id
@@ -214,6 +224,18 @@ export async function getOpenToday(categories: OpenPlace["category"][]): Promise
         ORDER BY o.is_open_now DESC, starts_at, o.title`,
     )
     .all(...categories) as OpenPlace[];
+}
+
+/** Our own ideas (scraper/content/ideas.ts) that are in season. */
+export async function getIdeas(): Promise<IdeaRow[]> {
+  await connection();
+  return getDb()
+    .prepare(
+      `SELECT id AS item_id, external_id, title, description, url, tags
+         FROM v_current_items
+        WHERE category = 'idea'`,
+    )
+    .all() as IdeaRow[];
 }
 
 /** Everything current that has coordinates, for the map. */
@@ -247,6 +269,7 @@ export async function getSourceNames(): Promise<string[]> {
     .prepare(
       `SELECT DISTINCT s.name FROM sources s
          JOIN scrape_runs r ON r.source_id = s.id AND r.status = 'ok'
+        WHERE s.base_url <> ''  -- our own ideas aren't a "source"
         ORDER BY s.name`,
     )
     .all() as { name: string }[];

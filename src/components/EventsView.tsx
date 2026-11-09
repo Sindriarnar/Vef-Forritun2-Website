@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { FeedItem } from "@/lib/feed-types";
 import { DetailDialog } from "./DetailDialog";
 import { Icon } from "./Icon";
-import { PostCard } from "./PostCard";
+import { useSaved } from "./SavedProvider";
 
 const FILTERS = [
   { id: "all", label: "Allt" },
@@ -16,7 +16,7 @@ const FILTERS = [
 
 type Filter = (typeof FILTERS)[number]["id"];
 
-/** "Viðburðir": upcoming events with day filters. */
+/** Upcoming events, grouped by day, with quick day filters. */
 export function EventsView({ events }: { events: FeedItem[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<FeedItem | null>(null);
@@ -27,45 +27,56 @@ export function EventsView({ events }: { events: FeedItem[] }) {
     return events.filter((e) => e.startsAt && e.startsAt >= from && e.startsAt < to);
   }, [events, filter]);
 
+  // Group by day, keeping the order (events are sorted by start time).
+  const days = useMemo(() => {
+    const groups: { key: string; heading: string; items: FeedItem[] }[] = [];
+    for (const event of visible) {
+      const key = event.dayKey ?? "?";
+      const last = groups[groups.length - 1];
+      if (last?.key === key) last.items.push(event);
+      else groups.push({ key, heading: event.dayHeading ?? "", items: [event] });
+    }
+    return groups;
+  }, [visible]);
+
   return (
     <>
-      <div className="page-intro">
-        <p className="eyebrow">
-          <span className="live-dot" />
-          EITTHVAÐ TIL AÐ HLAKKA TIL
-        </p>
-        <h1>
-          Vertu þar sem <em>eitthvað gerist.</em>
-        </h1>
-        <p>Tónleikar, leikhús og viðburðir. Finndu næsta tilefni til að fara út.</p>
+      <div className="page-head">
+        <h1>Viðburðir</h1>
+        <p>Tónleikar, leiksýningar, uppistand og fleira næstu vikurnar.</p>
       </div>
-      <div className="section-heading events-heading">
-        <div className="category-filters" aria-label="Velja dag">
+
+      <div className="filter-bar">
+        <div className="chips" role="group" aria-label="Velja tímabil">
           {FILTERS.map((f) => (
-            <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+            <button key={f.id} type="button" className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
               {f.label}
             </button>
           ))}
         </div>
-        <span className="results-count" role="status">
+        <span className="count" role="status">
           {visible.length} {visible.length % 10 === 1 && visible.length % 100 !== 11 ? "viðburður" : "viðburðir"}
         </span>
       </div>
 
-      {visible.length > 0 ? (
-        <div className="offer-grid event-grid">
-          {visible.map((item) => (
-            <PostCard key={item.id} item={item} onOpen={setOpen} />
-          ))}
-        </div>
+      {days.length > 0 ? (
+        days.map((day) => (
+          <section key={day.key} className="day-group" aria-label={day.heading}>
+            <h2 className="day-heading">{day.heading}</h2>
+            <ul className="event-list">
+              {day.items.map((event) => (
+                <li key={event.id}>
+                  <EventRow event={event} onOpen={setOpen} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       ) : (
-        <div className="empty-state">
-          <span className="empty-icon">
-            <Icon name="calendar" />
-          </span>
-          <h2>Engir viðburðir á þessum tíma.</h2>
+        <div className="empty">
+          <h2>Ekkert á dagskrá þá</h2>
           <p>Prófaðu annan dag eða skoðaðu alla viðburði.</p>
-          <button className="button button-dark" type="button" onClick={() => setFilter("all")}>
+          <button className="btn" type="button" onClick={() => setFilter("all")}>
             Sýna alla viðburði
           </button>
         </div>
@@ -75,12 +86,70 @@ export function EventsView({ events }: { events: FeedItem[] }) {
   );
 }
 
+function EventRow({ event, onOpen }: { event: FeedItem; onOpen: (item: FeedItem) => void }) {
+  const { isFavorite, inPlan, toggleFavorite, togglePlan } = useSaved();
+  const saved = isFavorite(event.id);
+  const planned = inPlan(event.id);
+  const extra = [event.priceLabel && `frá ${event.priceLabel}`, event.placeDetail, event.categoryLabel]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <article className="event-row">
+      {event.dateParts && (
+        <span className="date-block" aria-hidden="true">
+          <small>{event.dateParts.weekday}</small>
+          <strong>{event.dateParts.day}</strong>
+          <small>{event.dateParts.month}</small>
+        </span>
+      )}
+      <button className="event-thumb" type="button" onClick={() => onOpen(event)} tabIndex={-1} aria-hidden="true">
+        {event.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={event.imageUrl} alt="" loading="lazy" />
+        ) : (
+          <Icon name="calendar" />
+        )}
+      </button>
+      <div className="event-info">
+        <h3>
+          <button type="button" onClick={() => onOpen(event)}>
+            {event.title}
+          </button>
+        </h3>
+        <p>
+          <strong>kl. {event.timeLabel}</strong> · {event.place}
+        </p>
+        {extra && <p className="event-extra">{extra}</p>}
+      </div>
+      <div className="event-actions">
+        <button
+          type="button"
+          className="icon-toggle"
+          aria-pressed={saved}
+          onClick={() => toggleFavorite(event)}
+          aria-label={`${saved ? "Fjarlægja úr vistuðu" : "Vista"}: ${event.title}`}
+        >
+          <Icon name="heart" className="icon-heart" />
+        </button>
+        <button
+          type="button"
+          className="icon-toggle"
+          aria-pressed={planned}
+          onClick={() => togglePlan(event)}
+          aria-label={`${planned ? "Taka af planinu" : "Setja á planið"}: ${event.title}`}
+        >
+          <Icon name={planned ? "check" : "plus"} />
+        </button>
+      </div>
+    </article>
+  );
+}
+
 /** [from, to) as ISO strings. Iceland is UTC+0, so UTC days are local days. */
 function range(filter: Exclude<Filter, "all">, now: Date): [string, string] {
-  const day = (offset: number) => {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset));
-    return d.toISOString();
-  };
+  const day = (offset: number) =>
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset)).toISOString();
   const nowIso = now.toISOString();
   switch (filter) {
     case "today":

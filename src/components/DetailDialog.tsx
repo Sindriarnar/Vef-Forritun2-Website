@@ -3,9 +3,10 @@
 import { useEffect, useRef } from "react";
 import type { FeedItem } from "@/lib/feed-types";
 import { Icon } from "./Icon";
+import { Price } from "./PostCard";
 import { useSaved } from "./SavedProvider";
 
-/** "Nánar" — details about one item, with links to the source site. */
+/** Details about one item, with a link to the source site. */
 export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const { isFavorite, inPlan, toggleFavorite, togglePlan } = useSaved();
@@ -19,12 +20,13 @@ export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose
 
   const saved = item ? isFavorite(item.id) : false;
   const planned = item ? inPlan(item.id) : false;
+  const poster = item?.kind === "movie";
 
   return (
     <dialog
       ref={ref}
-      className="detail-dialog"
-      aria-label={item ? `Nánar: ${item.title}` : "Nánar"}
+      className="detail"
+      aria-label={item ? item.title : "Nánar"}
       onClose={onClose}
       onClick={(e) => {
         // Click on the backdrop closes the dialog.
@@ -32,44 +34,61 @@ export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose
       }}
     >
       {item && (
-        <div className="detail-layout">
-          <button className="dialog-close" type="button" onClick={onClose} aria-label="Loka">
+        <div className={`detail-layout${poster ? " is-poster" : ""}${item.imageUrl ? "" : " no-image"}`}>
+          <button className="detail-close" type="button" onClick={onClose} aria-label="Loka">
             <Icon name="close" />
           </button>
-          <div className="detail-visual">
-            {item.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
+          {item.imageUrl && (
+            <div className="detail-image">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={item.imageUrl} alt="" />
-            )}
-            {item.discountPercent ? <span className="card-tag discount-tag">−{item.discountPercent}%</span> : null}
-          </div>
-          <div className="detail-main">
-            <p className="detail-category">
-              {item.isLive && <span className="live-dot" />}
-              {item.categoryLabel}
-            </p>
-            <h2>{item.title}</h2>
-            {item.subtitle && <p>{item.subtitle}</p>}
-            {item.description && <p className="detail-description">{item.description}</p>}
-
-            <div className="detail-facts">
-              <p>
-                <Icon name="pin" />
-                <span>
-                  {item.place}
-                  {item.placeDetail && <small> · {item.placeDetail}</small>}
-                </span>
-              </p>
-              {item.whenLabel && (
-                <p>
-                  <Icon name="clock" />
-                  <span>{item.whenLabel}</span>
-                </p>
-              )}
+              {item.discountPercent ? <span className="badge badge-discount">−{item.discountPercent}%</span> : null}
             </div>
+          )}
+
+          <div className="detail-body">
+            <p className="post-cat">{item.categoryLabel}</p>
+            <h2>{item.title}</h2>
+            {item.subtitle && <p className="detail-sub">{item.subtitle}</p>}
+
+            <dl className="detail-facts">
+              {item.kind === "idea" ? (
+                <div>
+                  <dt>Hentar</dt>
+                  <dd>{item.tags?.join(" · ")}</dd>
+                </div>
+              ) : (
+                <div>
+                  <dt>Staður</dt>
+                  <dd>
+                    {item.place}
+                    {item.placeDetail && <span> · {item.placeDetail}</span>}
+                  </dd>
+                </div>
+              )}
+              {item.whenLabel && (
+                <div>
+                  <dt>Hvenær</dt>
+                  <dd>
+                    {item.isLive && <span className="dot" aria-hidden="true" />}
+                    {item.whenLabel}
+                  </dd>
+                </div>
+              )}
+              {item.priceLabel && (
+                <div>
+                  <dt>Verð</dt>
+                  <dd>
+                    <Price item={item} />
+                  </dd>
+                </div>
+              )}
+            </dl>
+
+            {item.description && <p className="detail-text">{item.description}</p>}
 
             {item.showtimes && item.showtimes.length > 0 && (
-              <div className="detail-showtimes">
+              <div className="showtimes">
                 <h3>Sýningar í dag</h3>
                 <ul>
                   {item.showtimes.map((s) => (
@@ -85,29 +104,31 @@ export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose
               </div>
             )}
 
-            {item.priceLabel && (
-              <p className="detail-price">
-                {item.priceNote === "frá" && <small>frá</small>}
-                {item.priceLabel}
-                {item.originalPriceLabel && <del>{item.originalPriceLabel}</del>}
-              </p>
-            )}
-
             <div className="detail-actions">
-              <a className="button button-dark" href={item.url} target="_blank" rel="noopener noreferrer">
-                Skoða á {item.sourceName}
-                <Icon name="external" />
-              </a>
-              <button className="button button-outline" type="button" onClick={() => togglePlan(item)}>
-                <Icon name={planned ? "check" : "calendar"} />
+              {item.url && (
+                <a className="btn btn-primary" href={item.url} target="_blank" rel="noopener noreferrer">
+                  Opna á {item.sourceName}
+                  <Icon name="external" />
+                </a>
+              )}
+              <button
+                className={item.url ? "btn" : "btn btn-primary"}
+                type="button"
+                aria-pressed={planned}
+                onClick={() => togglePlan(item)}
+              >
+                <Icon name={planned ? "check" : "plus"} />
                 {planned ? "Á planinu" : "Setja á planið"}
               </button>
-              <button type="button" onClick={() => toggleFavorite(item)} aria-pressed={saved}>
-                <Icon name="heart" />
-                {saved ? "Vistað í uppáhaldi" : "Vista í uppáhaldi"}
+              <button className="btn btn-icon" type="button" aria-pressed={saved} onClick={() => toggleFavorite(item)} aria-label={saved ? "Fjarlægja úr vistuðu" : "Vista"}>
+                <Icon name="heart" className="icon-heart" />
               </button>
             </div>
-            <p className="detail-note">Upplýsingar sóttar af {item.sourceName}. Verð og tímar geta breyst.</p>
+            <p className="detail-note">
+              {item.kind === "idea"
+                ? "Hugmynd úr hugmyndabankanum okkar."
+                : `Frá ${item.sourceName}. Verð og tímar geta breyst.`}
+            </p>
           </div>
         </div>
       )}

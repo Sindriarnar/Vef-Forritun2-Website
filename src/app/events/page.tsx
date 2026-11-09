@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Viðburðir · Hvað á að gera?" }
 export default function EventsPage() {
   return (
     <div className="page-shell secondary-page events-page">
-      <Suspense fallback={<p className="loading">Hleð inn viðburðum…</p>}>
+      <Suspense fallback={<p className="loading">Sæki viðburði…</p>}>
         <EventsData />
       </Suspense>
     </div>

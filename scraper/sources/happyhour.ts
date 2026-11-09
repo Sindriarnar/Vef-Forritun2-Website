@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ScrapedItem, Source } from "../types";
-import { absoluteUrl, clean } from "../lib/text";
+import { absoluteUrl, clean, spacedText } from "../lib/text";
 import { parseTimeRanges, parseWeekday, rangesToOccurrences, upcomingDates, weekday } from "../lib/schedule";
 
 /**
@@ -86,7 +86,8 @@ export function parseHappyHours(html: string, now: Date): ScrapedItem[] {
 function describe($: cheerio.CheerioAPI, $popup: ReturnType<cheerio.CheerioAPI>): string | null {
   const copy = $popup.clone();
   copy.find("h3, iframe, .popup_tripadvisor, p[style*='float']").remove();
-  const text = clean(copy.text());
+  // spacedText keeps a space between paragraphs/lines ("bar.<br>Every day" -> "bar. Every day").
+  const text = spacedText(copy.get());
   if (!text) return null;
   return text.length > 280 ? `${text.slice(0, 277).trimEnd()}…` : text;
 }

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./Icon";
+import { Logo } from "./Logo";
 import { useSaved } from "./SavedProvider";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
-  { href: "/", label: "Fyrir þig", icon: "compass" },
+  { href: "/", label: "Í dag", icon: "compass" },
   { href: "/events", label: "Viðburðir", icon: "calendar" },
-  { href: "/map", label: "Kortið", icon: "map" },
-  { href: "/plan", label: "Mitt plan", icon: "check" },
+  { href: "/map", label: "Kort", icon: "map" },
+  { href: "/plan", label: "Planið", icon: "check" },
 ];
 
 /** Top bar + the main navigation (left rail on desktop, bottom bar on phones). */
@@ -23,14 +24,7 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="header-inner">
         <Link className="brand" href="/" aria-label="Hvað á að gera? Forsíða">
-          <span className="brand-mark">
-            <Icon name="spark" />
-          </span>
-          <span>
-            Hvað á
-            <br />
-            að gera<span className="brand-question">?</span>
-          </span>
+          <Logo />
         </Link>
 
         <nav className="main-nav" aria-label="Aðalvalmynd">
@@ -49,27 +43,19 @@ export function SiteHeader() {
         </nav>
 
         <div className="header-actions">
-          <Link className="location-button" href="/map">
-            <Icon name="pin" />
-            Reykjavík
-          </Link>
-          <button
-            className="header-random icon-button"
-            type="button"
-            onClick={requestRandom}
-            aria-label="Láta tilviljunina velja plan"
-            title="Veldu fyrir mig"
-          >
-            <Icon name="spark" />
+          <button className="header-button" type="button" onClick={requestRandom} title="Veldu eitthvað fyrir mig">
+            <Icon name="dice" />
+            <span>Veldu fyrir mig</span>
           </button>
           <Link
-            className={`icon-button favorites-button${favoriteCount ? " is-active" : ""}`}
+            className="icon-button"
             href="/plan#vistad"
-            aria-label={`Vistaðar hugmyndir: ${favoriteCount}`}
-            title="Uppáhaldið þitt"
+            aria-label={`Vistað: ${favoriteCount}`}
+            title="Vistað"
+            data-active={favoriteCount > 0 || undefined}
           >
-            <Icon name="heart" />
-            {loaded && favoriteCount > 0 && <span className="favorite-count">{favoriteCount}</span>}
+            <Icon name="heart" className="icon-heart" />
+            {loaded && favoriteCount > 0 && <span className="badge-count">{favoriteCount}</span>}
           </Link>
         </div>
       </div>

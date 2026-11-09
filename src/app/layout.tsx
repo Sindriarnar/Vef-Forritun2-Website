@@ -1,22 +1,30 @@
 import type { Metadata, Viewport } from "next";
+import { Schibsted_Grotesk } from "next/font/google";
 import Link from "next/link";
-import { Icon } from "@/components/Icon";
+import { LogoMark } from "@/components/Logo";
 import { SavedProvider } from "@/components/SavedProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
+// Self-hosted by Next.js at build time: no requests to Google from visitors.
+const font = Schibsted_Grotesk({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Hvað á að gera? · Finndu þitt næsta plan",
-  description: "Tilboð, bíó, viðburðir, sund og happy hour á einum stað. Finndu eitthvað að gera í dag.",
+  title: "Hvað á að gera í dag?",
+  description: "Bíó, tilboð, viðburðir, sund og happy hour í Reykjavík. Allt á einum stað, uppfært daglega.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0d0b",
+  themeColor: "#f7f4ee",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="is">
+    <html lang="is" className={font.variable}>
       <body>
         <SavedProvider>
           <a className="skip-link" href="#main">
@@ -29,11 +37,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <footer className="site-footer">
             <div className="footer-inner">
               <Link href="/" className="footer-brand">
-                <Icon name="spark" />
-                Hvað á að gera?
+                <LogoMark />
+                hvað á að gera?
               </Link>
-              <span>Gerðu meira úr deginum.</span>
-              <small>Gögn sótt af vefjum þjónustuaðila · Gert fyrir Reykjavík</small>
+              <p>
+                Nemendaverkefni í Vefforritun 2. Upplýsingar eru sóttar af vefjum fyrirtækjanna sjálfra; athugaðu verð
+                og tíma hjá þeim áður en þú ferð.
+              </p>
             </div>
           </footer>
         </SavedProvider>

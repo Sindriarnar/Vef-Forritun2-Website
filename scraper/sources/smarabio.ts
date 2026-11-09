@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { ScrapedItem, ScrapedOccurrence, Source } from "../types";
 import { absoluteUrl, clean, spacedText } from "../lib/text";
-import { parseWeekday, rangesToOccurrences, upcomingDates, weekday, type TimeRange } from "../lib/schedule";
+import { findAddress, parseWeeklyHours, upcomingDates } from "../lib/schedule";
 
 /**
  * Smárabíó — the country's biggest cinema, plus an entertainment area
@@ -212,9 +212,7 @@ export function parseActivityPage(html: string, now: Date, hoursMarker: string) 
   const pageText = () => spacedText($("body").get());
 
   // The address is in the footer ("Hagasmára 1, 201 Kópavogi").
-  const address =
-    pageText().match(/[A-ZÁÐÉÍÓÚÝÞÆÖ][a-záðéíóúýþæö]+ \d+[a-z]?, \d{3} [A-ZÁÐÉÍÓÚÝÞÆÖ][a-záðéíóúýþæö]+/)?.[0] ??
-    null;
+  const address = findAddress(pageText());
 
   // Everything else only from the page content, not the menu/footer
   // (the footer lists every activity name, which would fool the checks).
@@ -243,7 +241,7 @@ export function parseActivityPage(html: string, now: Date, hoursMarker: string) 
     .find((src) => src && !src.endsWith(".svg"));
 
   return {
-    occurrences: parseHours(text, hoursMarker, now),
+    occurrences: parseWeeklyHours(text, { marker: hoursMarker, now, venue: VENUE, maxLength: 250 }),
     address,
     description,
     summary,
@@ -253,39 +251,6 @@ export function parseActivityPage(html: string, now: Date, hoursMarker: string) 
     // Own menu photo, else a photo on the page, else the entertainment area's photo.
     imageFor: (path: string) => navImages.get(path) ?? pageImage ?? navImages.get("/skemmtisvaedi") ?? null,
   };
-}
-
-const DAY_HOURS =
-  /([a-záðéíóúýþæö]{3})[a-záðéíóúýþæö.]*\s*(?:-\s*([a-záðéíóúýþæö]{3})[a-záðéíóúýþæö.]*)?\s*:?\s*(\d{1,2})[:.](\d{2})\s*(?:til|[-–])\s*(\d{1,2})[:.](\d{2})/gi;
-
-/**
- * Opening hours following `marker`. The marker word can also appear in
- * menus ("Opnunartímar" links), so we use the first occurrence that is
- * actually followed by "day + time range" text.
- */
-function parseHours(text: string, marker: string, now: Date) {
-  const lower = text.toLowerCase();
-  let matches: RegExpMatchArray[] = [];
-  for (let at = lower.indexOf(marker); at !== -1 && matches.length === 0; at = lower.indexOf(marker, at + 1)) {
-    matches = [...lower.slice(at, at + 250).matchAll(DAY_HOURS)].filter((m) => parseWeekday(m[1]) !== null);
-  }
-
-  const byDay = new Map<number, TimeRange[]>();
-  for (const m of matches) {
-    const from = parseWeekday(m[1]);
-    const to = m[2] ? parseWeekday(m[2]) : from;
-    if (from === null || to === null) continue;
-    const range = { start: `${m[3].padStart(2, "0")}:${m[4]}`, end: `${m[5].padStart(2, "0")}:${m[6]}` };
-    // Walk from `from` to `to` (Mon-Thu = 1,2,3,4; wraps past Sunday if needed).
-    for (let d = from, i = 0; i < 7; d = (d + 1) % 7, i++) {
-      byDay.set(d, [range]);
-      if (d === to) break;
-    }
-  }
-
-  return upcomingDates(now).flatMap((date) =>
-    rangesToOccurrences(date, byDay.get(weekday(date)) ?? [], { venue: VENUE }),
-  );
 }
 
 /** "9/11/2026" (day/month/year) -> "2026-11-09" */

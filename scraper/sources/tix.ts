@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ScrapedItem, ScrapedOccurrence, Source } from "../types";
+import { findJsonValues, readFlightData } from "../lib/flight";
 import { absoluteUrl, clean, normaliseIso } from "../lib/text";
 
 /**
@@ -48,7 +49,7 @@ export function parseTixPage(html: string, now: Date): ScrapedItem[] {
   const flight = readFlightData(html);
   const items = new Map<string, ScrapedItem>();
 
-  for (const data of findJsonObjects<TixBoxOfficeData>(flight, "boxOfficeData")) {
+  for (const data of findJsonValues<TixBoxOfficeData>(flight, "boxOfficeData")) {
     const id = data.link?.match(/tickets\/(\d+)/)?.[1];
     const title = clean(data.name);
     if (!id || !title || items.has(id)) continue;
@@ -118,57 +119,4 @@ function largestSrc(srcset: string | undefined): string | null {
     .filter((c) => c.url && c.width <= 828)
     .sort((a, b) => b.width - a.width);
   return candidates[0]?.url ?? null;
-}
-
-/** Concatenates the strings pushed into `self.__next_f` (the RSC payload). */
-function readFlightData(html: string): string {
-  const pattern = /self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g;
-  let text = "";
-  for (const match of html.matchAll(pattern)) {
-    try {
-      text += JSON.parse(match[1]);
-    } catch {
-      // Skip a chunk we cannot decode rather than failing the whole page.
-    }
-  }
-  return text;
-}
-
-/** Finds every `"key":{...}` in a blob of text and JSON-parses the object. */
-function* findJsonObjects<T>(text: string, key: string): Generator<T> {
-  const needle = `"${key}":{`;
-  let from = 0;
-  while (true) {
-    const at = text.indexOf(needle, from);
-    if (at === -1) return;
-    const start = at + needle.length - 1;
-    const end = matchingBrace(text, start);
-    if (end === -1) return;
-    try {
-      yield JSON.parse(text.slice(start, end + 1)) as T;
-    } catch {
-      // not valid JSON (e.g. cut-off chunk) — skip it
-    }
-    from = end + 1;
-  }
-}
-
-function matchingBrace(text: string, start: number): number {
-  let depth = 0;
-  let inString = false;
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-    if (inString) {
-      if (ch === "\\") i++;
-      else if (ch === '"') inString = false;
-    } else if (ch === '"') {
-      inString = true;
-    } else if (ch === "{") {
-      depth++;
-    } else if (ch === "}") {
-      depth--;
-      if (depth === 0) return i;
-    }
-  }
-  return -1;
 }

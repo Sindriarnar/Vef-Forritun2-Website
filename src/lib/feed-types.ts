@@ -3,14 +3,15 @@
 // No server-only imports here.
 
 /** The "story" circles at the top of the feed. */
-export type FeedCategory = "matur" | "bio" | "vidburdir" | "afthreying" | "sund";
+export type FeedCategory = "matur" | "bio" | "vidburdir" | "afthreying" | "sund" | "hugmyndir";
 
 export const CATEGORIES: { id: FeedCategory; label: string }[] = [
-  { id: "matur", label: "Matur & drykkur" },
-  { id: "bio", label: "Bíó" },
-  { id: "vidburdir", label: "Viðburðir" },
   { id: "afthreying", label: "Afþreying" },
+  { id: "vidburdir", label: "Viðburðir" },
+  { id: "bio", label: "Bíó" },
+  { id: "matur", label: "Matur & drykkur" },
   { id: "sund", label: "Sund" },
+  { id: "hugmyndir", label: "Hugmyndir" },
 ];
 
 export interface Showtime {
@@ -23,7 +24,7 @@ export interface Showtime {
 /** One post in the feed: a deal, a movie, an event, a pool... */
 export interface FeedItem {
   id: string; // stable across scrapes, e.g. "deal-hopkaup-16191", "movie-iceguys"
-  kind: "deal" | "movie" | "event" | "happy_hour" | "pool" | "activity";
+  kind: "deal" | "movie" | "event" | "happy_hour" | "pool" | "activity" | "idea";
   category: FeedCategory;
   categoryLabel: string;
   place: string; // post header: who/where
@@ -42,6 +43,11 @@ export interface FeedItem {
   whenLabel: string | null; // "Opið til 22:00", "mið. 11. nóv. kl. 20:00"
   isLive: boolean; // open / happening right now
   startsAt: string | null; // next start, ISO
+  timeLabel?: string | null; // "20:00"
+  dayKey?: string | null; // "2026-11-11", for grouping by day
+  dayHeading?: string | null; // "Á morgun", "Fimmtudagur 12. nóvember"
+  dateParts?: { weekday: string; day: string; month: string } | null;
+  tags?: string[]; // e.g. ideas: "Frítt", "Úti", "Vinahópur"
   showtimes?: Showtime[];
   lat?: number | null;
   lng?: number | null;

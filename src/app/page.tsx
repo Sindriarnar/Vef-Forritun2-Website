@@ -2,14 +2,14 @@ import { Suspense } from "react";
 import { Feed } from "@/components/Feed";
 import { NoData } from "@/components/NoData";
 import { getFeed } from "@/lib/feed";
-import { formatDay, formatTime } from "@/lib/format";
+import { formatDay, formatLongDate, formatTime } from "@/lib/format";
 import { getLastUpdated, getSourceNames } from "@/lib/queries";
 
 export default function Home() {
   return (
     <div className="page-shell">
       {/* Data comes from the database at request time, so it streams in. */}
-      <Suspense fallback={<p className="loading">Hleð inn hugmyndum…</p>}>
+      <Suspense fallback={<p className="loading">Sæki dagskrá dagsins…</p>}>
         <FeedData />
       </Suspense>
     </div>
@@ -22,6 +22,7 @@ async function FeedData() {
   return (
     <Feed
       items={items}
+      todayLabel={formatLongDate(new Date().toISOString())}
       updatedLabel={`${formatDay(lastUpdated)} kl. ${formatTime(lastUpdated)}`}
       sources={sources}
     />

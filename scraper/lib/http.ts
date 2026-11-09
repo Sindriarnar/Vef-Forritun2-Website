@@ -35,7 +35,9 @@ export class PoliteHttp {
     const res = await fetch(target, {
       headers: {
         "user-agent": this.userAgent,
-        accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+        // Plain browser-style Accept. (Offering application/json makes some
+        // CMSs, e.g. keiluhollin.is, answer with a partial page.)
+        accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
         "accept-language": "is,en;q=0.8",
       },
       signal: AbortSignal.timeout(this.timeoutMs),
@@ -45,6 +47,23 @@ export class PoliteHttp {
       throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
     }
     return res.text();
+  }
+
+  /** Whether a URL exists (HEAD request, same politeness rules as getText). */
+  async exists(url: string): Promise<boolean> {
+    const target = new URL(url);
+    if (!(await this.isAllowed(target))) return false;
+    await this.waitForTurn(target.host);
+    try {
+      const res = await fetch(target, {
+        method: "HEAD",
+        headers: { "user-agent": this.userAgent },
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   private async isAllowed(url: URL): Promise<boolean> {
@@ -81,9 +100,9 @@ export class PoliteHttp {
     return robots;
   }
 
-  /** The product token of the user agent, e.g. "HvadAdGeraBot". */
+  /** Our bot's name for robots.txt rules, e.g. "HvadAdGeraBot". */
   private botName(): string {
-    return this.userAgent.split(/[\s/]/)[0] || "*";
+    return this.userAgent.match(/[A-Za-z]+Bot/)?.[0] ?? (this.userAgent.split(/[\s/]/)[0] || "*");
   }
 
   private async waitForTurn(host: string) {

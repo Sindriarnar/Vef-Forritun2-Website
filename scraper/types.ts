@@ -8,7 +8,8 @@ export type Category =
   | "activity_deal"
   | "activity"
   | "pool"
-  | "happy_hour";
+  | "happy_hour"
+  | "idea";
 
 /** Extra facts about a venue; saved on the venues row when known. */
 export interface VenueDetails {

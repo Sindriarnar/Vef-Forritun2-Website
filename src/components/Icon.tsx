@@ -1,7 +1,32 @@
-// Line icons from the AI concept (Concept og Wireframe/AI concept/index.html).
+// Simple line icons (24x24, stroke = currentColor).
 
 const PATHS = {
-  spark: <path d="M12 2v20M2 12h20M5 5l14 14M5 19 19 5" />,
+  dice: (
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <circle cx="8.5" cy="8.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="8.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="15.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    </>
+  ),
+  bulb: (
+    <>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3Z" />
+    </>
+  ),
+  plus: <path d="M12 5v14M5 12h14" />,
+  chevron: <path d="m9 6 6 6-6 6" />,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
   pin: (
     <>

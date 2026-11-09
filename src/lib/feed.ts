@@ -1,12 +1,14 @@
 import type { FeedItem } from "./feed-types";
-import { formatDay, formatPrice, formatTime } from "./format";
+import { dateParts, formatDay, formatDayHeading, formatPrice, formatTime } from "./format";
 import {
   getActiveDeals,
+  getIdeas,
   getMoviesToday,
   getOpenToday,
   getUpcomingEvents,
   type DealRow,
   type EventRow,
+  type IdeaRow,
   type MovieToday,
   type OpenPlace,
 } from "./queries";
@@ -26,7 +28,7 @@ export function dealToItem(deal: DealRow): FeedItem {
     place: deal.provider ?? deal.source_name,
     placeDetail: `Tilboð á ${deal.source_name}`,
     title: deal.title,
-    subtitle: deal.provider ? `Hjá ${deal.provider}` : null,
+    subtitle: null,
     description: null,
     imageUrl: deal.image_url,
     url: deal.url,
@@ -36,11 +38,11 @@ export function dealToItem(deal: DealRow): FeedItem {
       deal.original_price_isk && deal.original_price_isk !== deal.price_isk
         ? formatPrice(deal.original_price_isk)
         : null,
-    priceNote: "á tilboði",
+    priceNote: null,
     discountPercent: deal.discount_percent || null,
-    tag: "Tilboð",
-    whenLabel: "Gildir núna",
-    isLive: true,
+    tag: null,
+    whenLabel: null,
+    isLive: false,
     startsAt: null,
   };
 }
@@ -65,7 +67,7 @@ export function movieToItem(movie: MovieToday): FeedItem {
     originalPriceLabel: null,
     priceNote: null,
     discountPercent: null,
-    tag: `${movie.showtimes.length} ${movie.showtimes.length === 1 ? "sýning" : "sýningar"} í dag`,
+    tag: null,
     whenLabel: next ? `Næsta sýning kl. ${formatTime(next.startsAt)}` : null,
     isLive: false,
     startsAt: next?.startsAt ?? null,
@@ -79,7 +81,7 @@ export function movieToItem(movie: MovieToday): FeedItem {
 }
 
 export function eventToItem(event: EventRow): FeedItem {
-  const when = `${formatDay(event.next_start)} kl. ${formatTime(event.next_start)}`;
+  const time = formatTime(event.next_start);
   const price = formatPrice(event.price_isk);
   const firstTag = event.tags?.split(",")[0] ?? null;
   return {
@@ -99,10 +101,14 @@ export function eventToItem(event: EventRow): FeedItem {
     originalPriceLabel: null,
     priceNote: price ? "frá" : null,
     discountPercent: null,
-    tag: formatDay(event.next_start),
-    whenLabel: when,
+    tag: null,
+    whenLabel: `${formatDay(event.next_start)} kl. ${time}`,
     isLive: false,
     startsAt: event.next_start,
+    timeLabel: time,
+    dayKey: event.next_start.slice(0, 10),
+    dayHeading: formatDayHeading(event.next_start),
+    dateParts: dateParts(event.next_start),
   };
 }
 
@@ -126,15 +132,17 @@ export function placeToItem(place: OpenPlace): FeedItem {
       : `Opnar kl. ${from}`;
   const price = formatPrice(place.price_isk);
 
+  const exhibition = place.tags?.split(",").includes("Sýning");
+
   return {
     id: `${place.category}-${place.item_id}`,
     kind: place.category,
     category: kind.category,
-    categoryLabel: kind.label,
+    categoryLabel: exhibition ? "Sýning" : kind.label,
     place: happyHour ? place.title : (place.provider ?? place.source_name),
     placeDetail: place.address,
-    title: happyHour ? `Happy hour á ${place.title}` : place.title,
-    subtitle: happyHour ? `${from}–${until} í dag` : place.subtitle,
+    title: place.title,
+    subtitle: happyHour ? `Happy hour ${from}–${until}` : place.subtitle,
     description: place.description,
     imageUrl: place.image_url,
     url: place.url,
@@ -143,33 +151,84 @@ export function placeToItem(place: OpenPlace): FeedItem {
     originalPriceLabel: null,
     priceNote: price ? "frá" : null,
     discountPercent: null,
-    tag: place.is_open_now ? (happyHour ? "Í gangi núna" : "Opið núna") : whenLabel,
+    tag: null,
     whenLabel,
     isLive: place.is_open_now === 1,
     startsAt: place.starts_at,
+    timeLabel: `${from}–${until}`,
     lat: place.lat,
     lng: place.lng,
   };
 }
 
+export function ideaToItem(idea: IdeaRow): FeedItem {
+  const tags = idea.tags?.split(",").filter(Boolean) ?? [];
+  let host = "";
+  try {
+    host = idea.url ? new URL(idea.url).hostname.replace(/^www\./, "") : "";
+  } catch {
+    // not a full URL: no link
+  }
+  return {
+    id: `idea-${idea.external_id}`,
+    kind: "idea",
+    category: "hugmyndir",
+    categoryLabel: "Hugmynd",
+    place: "Hugmyndabankinn",
+    placeDetail: tags.join(" · ") || null,
+    title: idea.title,
+    subtitle: null,
+    description: idea.description,
+    imageUrl: null,
+    url: host ? idea.url : "",
+    sourceName: host || "Hugmyndabankinn",
+    priceLabel: null,
+    originalPriceLabel: null,
+    priceNote: null,
+    discountPercent: null,
+    tag: null,
+    whenLabel: null,
+    isLive: false,
+    startsAt: null,
+    tags,
+  };
+}
+
 /**
- * Everything for the "Fyrir þig" feed, mixed so the feed isn't 30 deals
- * in a row: one from each group in turn (deal, movie, place, event...).
+ * Everything for the front page. Deals and events are mixed so the feed
+ * isn't 30 deals in a row; the rest is shown in compact sections.
  */
 export async function getFeed(): Promise<FeedItem[]> {
-  const [deals, movies, places, events] = await Promise.all([
+  const [deals, movies, places, events, ideas] = await Promise.all([
     getActiveDeals(),
     getMoviesToday(),
     getOpenToday(["happy_hour", "pool", "activity"]),
-    getUpcomingEvents({ limit: 20, withinDays: 2 }),
+    getUpcomingEvents({ limit: 24, withinDays: 2 }),
+    getIdeas(),
   ]);
 
-  return interleave([
-    deals.map(dealToItem),
-    movies.map(movieToItem),
-    places.map(placeToItem),
-    events.map(eventToItem),
-  ]);
+  return [
+    ...interleave([deals.map(dealToItem), events.map(eventToItem)]),
+    ...movies.map(movieToItem),
+    ...places.map(placeToItem),
+    ...shuffleForToday(ideas.map(ideaToItem)),
+  ];
+}
+
+/** A different (but stable for the whole day) order of ideas each day. */
+function shuffleForToday<T>(items: T[]): T[] {
+  // Park–Miller generator seeded with today's date (stays within safe integers).
+  let seed = Number(new Date().toISOString().slice(0, 10).replace(/-/g, "")) % 2147483647;
+  const random = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 export async function getEventItems(): Promise<FeedItem[]> {

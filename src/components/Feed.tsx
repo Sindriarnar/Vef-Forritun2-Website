@@ -1,26 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CATEGORIES, type FeedCategory, type FeedItem } from "@/lib/feed-types";
 import { DetailDialog } from "./DetailDialog";
+import { MovieShelf, PlaceList, PlaceRow } from "./FeedModules";
 import { Icon } from "./Icon";
+import { IdeaCards } from "./IdeaCards";
 import { PostCard } from "./PostCard";
 import { useSaved } from "./SavedProvider";
 
 interface FeedProps {
   items: FeedItem[];
+  todayLabel: string; // "mánudagur 9. nóvember"
   updatedLabel: string; // "í dag kl. 13:47"
   sources: string[];
 }
 
-/** "Fyrir þig": the photo feed from the AI concept, with real data. */
-export function Feed({ items, updatedLabel, sources }: FeedProps) {
+/** The front page: what's on today, as a feed with compact sections mixed in. */
+export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
   const [category, setCategory] = useState<FeedCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<FeedItem | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const { requestRandom } = useSaved();
+  const { plan, loaded, requestRandom } = useSaved();
 
   const visible = useMemo(() => {
     const q = normalise(query);
@@ -47,7 +50,7 @@ export function Feed({ items, updatedLabel, sources }: FeedProps) {
     return () => window.removeEventListener("hvad:random", onRandom);
   }, [openRandom]);
 
-  // "/" focuses the search, like in the concept.
+  // "/" focuses the search.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && e.target.closest("input, textarea, select");
@@ -60,180 +63,158 @@ export function Feed({ items, updatedLabel, sources }: FeedProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Story circles use a real photo from each category.
-  const storyImage = (id: FeedCategory) => items.find((i) => i.category === id && i.imageUrl)?.imageUrl;
-  const openNow = items.filter((i) => i.isLive && (i.kind === "pool" || i.kind === "activity" || i.kind === "happy_hour"));
+  const posts = visible.filter((i) => i.kind === "deal" || i.kind === "event");
+  const movies = visible.filter((i) => i.kind === "movie");
+  const happyHours = visible.filter((i) => i.kind === "happy_hour");
+  const activities = visible.filter((i) => i.kind === "activity");
+  const pools = visible.filter((i) => i.kind === "pool");
+  const ideas = visible.filter((i) => i.kind === "idea");
+  // The sidebar shows the next few events (open places are already in the feed).
+  const nextUp = items
+    .filter((i) => i.kind === "event" && i.startsAt)
+    .sort((a, b) => a.startsAt!.localeCompare(b.startsAt!))
+    .slice(0, 5);
+  const planCount = Object.keys(plan).length;
+  const onlyIdeas = category === "hugmyndir";
+
+  // Big posts with the compact sections slotted in between them.
+  const modules: { after: number; node: ReactNode }[] = [
+    { after: 0, node: <PlaceList key="activities" id="activities" title="Afþreying í dag" places={activities} onOpen={setOpen} /> },
+    { after: 2, node: <MovieShelf key="movies" movies={movies} layout={posts.length ? "rail" : "grid"} onOpen={setOpen} /> },
+    { after: 4, node: <IdeaCards key="ideas" ideas={ideas} limit={onlyIdeas ? undefined : 4} onOpen={setOpen} /> },
+    { after: 6, node: <PlaceList key="happy" id="happy" title="Happy hour í dag" places={happyHours} onOpen={setOpen} /> },
+    { after: 8, node: <PlaceList key="pools" id="pools" title="Sund í dag" places={pools} onOpen={setOpen} /> },
+  ];
+  const content: ReactNode[] = [];
+  posts.forEach((post, i) => {
+    content.push(<PostCard key={post.id} item={post} onOpen={setOpen} />);
+    modules.filter((m) => m.after === i).forEach((m) => content.push(m.node));
+  });
+  modules.filter((m) => m.after >= posts.length).forEach((m) => content.push(m.node));
 
   return (
     <div className="feed-layout">
       <div className="feed-column">
-        <div className="stories-bar">
-          <div className="category-filters" aria-label="Flokka eftir áhuga">
-            <button type="button" aria-pressed={category === "all"} onClick={() => setCategory("all")}>
-              <span className="story-thumbnail">
-                <Icon name="spark" />
-              </span>
-              <span className="story-label">Allt</span>
-            </button>
-            {CATEGORIES.map((c) => {
-              const image = storyImage(c.id);
-              return (
-                <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
-                  <span className="story-thumbnail">
-                    {image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={image} alt="" />
-                    ) : (
-                      <Icon name="spark" />
-                    )}
-                  </span>
-                  <span className="story-label">{c.label}</span>
-                </button>
-              );
-            })}
+        <div className="feed-head">
+          <div>
+            <h1>Í dag</h1>
+            <p>{todayLabel}</p>
           </div>
+          <label className="search">
+            <Icon name="search" />
+            <input
+              ref={searchRef}
+              type="search"
+              placeholder="Leita…"
+              aria-label="Leita að bíói, tilboði eða stað"
+              autoComplete="off"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <kbd aria-hidden="true">/</kbd>
+          </label>
         </div>
 
-        <section className="discovery-section" aria-labelledby="discover-title">
-          <div className="feed-toolbar">
-            <div className="feed-tabs">
-              <h1 id="discover-title">Fyrir þig</h1>
-              <Link href="/events">Viðburðir</Link>
-            </div>
-            <label className="search-field">
-              <Icon name="search" />
-              <input
-                ref={searchRef}
-                type="search"
-                placeholder="Leita…"
-                aria-label="Leita að tilboði, viðburði eða stað"
-                autoComplete="off"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <kbd>/</kbd>
-            </label>
-          </div>
-          <div className="feed-context">
-            <span>
-              <span className="live-dot" />
-              Góðar hugmyndir í Reykjavík í dag
+        <div className="stories" role="group" aria-label="Flokkar">
+          <button type="button" className="story" aria-pressed={category === "all"} onClick={() => setCategory("all")}>
+            <span className="story-ring">
+              <Icon name="grid" />
             </span>
-            <span className="results-count" role="status" aria-live="polite">
-              {visible.length} {visible.length === 1 ? "hugmynd" : "hugmyndir"}
-            </span>
-          </div>
-
-          {visible.length > 0 ? (
-            <div className="offer-grid">
-              {visible.map((item) => (
-                <PostCard key={item.id} item={item} onOpen={setOpen} />
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <span className="empty-icon">
-                <Icon name="search" />
-              </span>
-              <h2>Ekkert plan fannst í þetta sinn.</h2>
-              <p>Prófaðu annað leitarorð eða skoðaðu alla flokka.</p>
-              <button
-                className="button button-dark"
-                type="button"
-                onClick={() => {
-                  setQuery("");
-                  setCategory("all");
-                }}
-              >
-                Sýna allt
-              </button>
-            </div>
-          )}
-        </section>
-
-        <div className="feed-end">
-          <Icon name="check" />
-          <strong>Þú ert með allar hugmyndirnar.</strong>
-          <p>Næsta skref? Veldu eitthvað skemmtilegt.</p>
-          <button className="text-button" type="button" onClick={openRandom}>
-            Veldu fyrir mig
-            <Icon name="spark" />
+            Allt
           </button>
+          {CATEGORIES.map((c) => {
+            const image = items.find((i) => i.category === c.id && i.imageUrl)?.imageUrl;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className="story"
+                aria-pressed={category === c.id}
+                onClick={() => setCategory(category === c.id ? "all" : c.id)}
+              >
+                <span className="story-ring">
+                  {image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={image} alt="" />
+                  ) : (
+                    <Icon name={c.id === "hugmyndir" ? "bulb" : "grid"} />
+                  )}
+                </span>
+                {c.label}
+              </button>
+            );
+          })}
         </div>
+
+        {visible.length > 0 ? (
+          <div className="feed">{content}</div>
+        ) : (
+          <div className="empty">
+            <h2>Ekkert fannst</h2>
+            <p>Prófaðu annað leitarorð eða annan flokk.</p>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setCategory("all");
+              }}
+            >
+              Sýna allt
+            </button>
+          </div>
+        )}
+
+        <p className="feed-end">
+          Þetta er allt fyrir daginn. Síðast uppfært {updatedLabel}.
+        </p>
       </div>
 
-      <aside className="feed-aside" aria-label="Fleiri hugmyndir">
-        <div className="feed-welcome">
-          <span className="welcome-symbol">
-            <Icon name="spark" />
-          </span>
-          <div>
-            <strong>Góður dagur byrjar hér.</strong>
-            <p>Finndu þitt næsta plan.</p>
-          </div>
-        </div>
-
-        <section className="aside-random">
-          <span className="aside-random-symbol" aria-hidden="true">
-            <Icon name="spark" />
-          </span>
-          <span className="eyebrow">EKKERT ÁKVEÐIÐ?</span>
-          <h2>
-            Látum daginn
-            <br />
-            koma á óvart.
-          </h2>
-          <p>Smá tilviljun gæti orðið að besta plani dagsins.</p>
-          <button className="button button-dark" type="button" onClick={openRandom}>
-            Veldu fyrir mig
-            <Icon name="arrow" />
-          </button>
-        </section>
-
-        {openNow.length > 0 && (
-          <section className="aside-places">
-            <div className="aside-heading">
-              <h2>Opið núna</h2>
-              <Link href="/map">Sjá á korti</Link>
+      <aside className="feed-aside" aria-label="Til hliðar">
+        {nextUp.length > 0 && (
+          <section className="aside-card">
+            <div className="aside-head">
+              <h2>Næst á dagskrá</h2>
+              <Link href="/events">Allir viðburðir</Link>
             </div>
-            {openNow.slice(0, 4).map((place) => (
-              <button key={place.id} className="aside-place" type="button" onClick={() => setOpen(place)}>
-                {place.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={place.imageUrl} alt="" />
-                ) : (
-                  <span className="aside-place-icon">
-                    <Icon name="spark" />
-                  </span>
-                )}
-                <span>
-                  <strong>{place.kind === "happy_hour" ? place.place : place.title}</strong>
-                  <small>{place.whenLabel}</small>
-                </span>
-                <Icon name="arrow" />
-              </button>
-            ))}
+            <ul className="place-list compact">
+              {nextUp.map((event) => (
+                <li key={event.id}>
+                  <PlaceRow place={event} onOpen={setOpen} />
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
-        <Link className="aside-plan" href="/plan">
-          <Icon name="calendar" />
+        <section className="aside-card">
+          <h2>Getur ekki valið?</h2>
+          <p>Við drögum eitthvað af handahófi úr því sem er í boði í dag.</p>
+          <button className="btn btn-primary" type="button" onClick={openRandom}>
+            <Icon name="dice" />
+            Veldu fyrir mig
+          </button>
+        </section>
+
+        <Link className="aside-card aside-link" href="/plan">
           <span>
-            <strong>Þitt eigið plan</strong>
-            <small>Hugmyndirnar sem þú vilt gera að veruleika.</small>
+            <strong>Planið þitt</strong>
+            <small>
+              {loaded && planCount > 0 ? `${planCount} atriði` : "Ekkert komið á planið enn"}
+            </small>
           </span>
-          <Icon name="arrow" />
+          <Icon name="chevron" />
         </Link>
-        <p className="aside-disclaimer">
-          Gögn sótt {updatedLabel}
+
+        <p className="aside-note">
+          Uppfært {updatedLabel}.
           <br />
-          frá {sources.join(", ")}
+          Heimildir: {sources.join(", ")}.
         </p>
       </aside>
 
-      <button className="mobile-random" type="button" onClick={requestRandom} aria-label="Veldu fyrir mig">
-        <Icon name="spark" />
-        Veldu fyrir mig
+      <button className="fab" type="button" onClick={requestRandom} aria-label="Veldu fyrir mig">
+        <Icon name="dice" />
       </button>
 
       <DetailDialog item={open} onClose={() => setOpen(null)} />

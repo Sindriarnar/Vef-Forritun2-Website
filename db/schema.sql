@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS items (
                         'activity_deal',  -- upplifun / afþreying á tilboði
                         'activity',       -- afþreying með opnunartíma (lasertag, leiktæki...)
                         'pool',           -- sundlaugar
-                        'happy_hour'
+                        'happy_hour',
+                        'idea'            -- okkar eigin hugmyndir (scraper/content/ideas.ts)
                       )),
   title               TEXT    NOT NULL,
   -- Normalised title used to merge the same movie from different

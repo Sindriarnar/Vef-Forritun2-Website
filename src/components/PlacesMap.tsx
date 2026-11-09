@@ -28,6 +28,7 @@ export function PlacesMap({ places }: { places: MapPlace[] }) {
 
   useEffect(() => {
     let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
     const markerMap = markers.current;
     // Leaflet touches `window`, so load it only in the browser.
     import("leaflet").then((L) => {
@@ -56,10 +57,16 @@ export function PlacesMap({ places }: { places: MapPlace[] }) {
         map.fitBounds(L.latLngBounds(places.map((p) => [p.lat, p.lng])), { padding: [40, 40], maxZoom: 15 });
       }
       mapRef.current = map;
+
+      // Leaflet measures its box once; re-measure when the layout changes
+      // (fonts loading, window resize), otherwise tiles only fill part of it.
+      resizeObserver = new ResizeObserver(() => map.invalidateSize());
+      resizeObserver.observe(container.current);
     });
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
       markerMap.clear();
