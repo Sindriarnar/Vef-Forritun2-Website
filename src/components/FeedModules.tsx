@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FeedItem } from "@/lib/feed-types";
+import { AgePill } from "./AgeFilter";
 
 /**
  * Compact sections that break up the feed, so not everything is a big
@@ -36,6 +37,7 @@ export function MovieShelf({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={movie.imageUrl} alt="" loading="lazy" />
                 )}
+                <AgePill item={movie} />
               </span>
               <strong>{movie.title}</strong>
               <span className="poster-times">
@@ -106,7 +108,10 @@ export function PlaceRow({ place, onOpen }: { place: FeedItem; onOpen: (item: Fe
         )}
       </span>
       <span className="place-text">
-        <strong>{place.title}</strong>
+        <strong>
+          {place.title}
+          <AgePill item={place} />
+        </strong>
         <small>{place.kind === "happy_hour" ? place.timeLabel : (place.placeDetail ?? place.subtitle)}</small>
       </span>
       <span className="status" data-live={place.isLive || undefined}>

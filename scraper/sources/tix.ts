@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ScrapedItem, ScrapedOccurrence, Source } from "../types";
+import { ageInfo, ageLimitIn, isFamilyTag, mentionsAlcohol, welcomesKids } from "../lib/ages";
 import { findJsonValues, readFlightData } from "../lib/flight";
 import { absoluteUrl, clean, normaliseIso } from "../lib/text";
 
@@ -12,6 +13,10 @@ import { absoluteUrl, clean, normaliseIso } from "../lib/text";
  * Components payload (`self.__next_f.push(...)` scripts). We read the
  * `boxOfficeData` objects from that payload, and take the nice event URL
  * and poster image from the HTML cards.
+ *
+ * Age limits ("18 ára aldurstakmark", "Aldurstakmark er 20 ár") are only
+ * written in the event descriptions, which sit next to boxOfficeData in
+ * the event's Contentful `fields` object (rich text).
  */
 const BASE = "https://tix.is";
 
@@ -22,6 +27,7 @@ interface TixBoxOfficeEvent {
   hall?: string;
   link?: string;
   categories?: string[];
+  description?: unknown; // plain text or Contentful rich text
 }
 
 interface TixBoxOfficeData {
@@ -47,6 +53,7 @@ export const tix: Source = {
 export function parseTixPage(html: string, now: Date): ScrapedItem[] {
   const cards = readCards(html);
   const flight = readFlightData(html);
+  const descriptions = readDescriptions(flight);
   const items = new Map<string, ScrapedItem>();
 
   for (const data of findJsonValues<TixBoxOfficeData>(flight, "boxOfficeData")) {
@@ -70,6 +77,13 @@ export function parseTixPage(html: string, now: Date): ScrapedItem[] {
     // Only keep events that still have a date in the future.
     if (occurrences.length === 0) continue;
 
+    const text = [descriptions.get(id), ...(data.events ?? []).map((e) => plainText(e.description))].join("\n");
+    const ages = ageInfo({
+      limit: ageLimitIn(text),
+      alcohol: mentionsAlcohol(title), // "Tipsý kokteilnámskeið", "Bjór og matur"
+      family: [...tags].some(isFamilyTag) || welcomesKids(text),
+    });
+
     const card = cards.get(id);
     items.set(id, {
       externalId: id,
@@ -81,11 +95,53 @@ export function parseTixPage(html: string, now: Date): ScrapedItem[] {
       priceIsk: data.priceFrom ?? null,
       subtitle: data.isSoldOut ? "Uppselt" : null,
       tags: [...tags],
+      ...ages,
       occurrences,
     });
   }
 
   return [...items.values()];
+}
+
+/**
+ * Event id -> description text. Descriptions live in Contentful entries
+ * nested anywhere in the page data (front page sections, `eventGroups`,
+ * `subEventGroups`...), so every entry with a `description` is checked.
+ */
+function readDescriptions(flight: string): Map<string, string> {
+  const texts = new Map<string, Set<string>>();
+  const visit = (node: unknown): void => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(visit);
+    const entry = node as Record<string, unknown>;
+    if (entry.description) {
+      const id = ticketId(entry);
+      const text = plainText(entry.description);
+      if (id && text) texts.set(id, (texts.get(id) ?? new Set()).add(text));
+    }
+    Object.values(entry).forEach(visit);
+  };
+  for (const fields of findJsonValues<unknown>(flight, "fields")) visit(fields);
+  return new Map([...texts].map(([id, set]) => [id, [...set].join("\n")]));
+}
+
+/** The event an entry is about: its own ticket link, or the only ticket link inside it. */
+function ticketId(entry: Record<string, unknown>): string | null {
+  const box = entry.boxOfficeData as TixBoxOfficeData | undefined;
+  const own = box?.link ?? (typeof entry.link === "string" ? entry.link : "");
+  const direct = own.match(/tickets\/(\d+)/)?.[1];
+  if (direct) return direct;
+  const ids = new Set([...JSON.stringify(entry).matchAll(/tickets\/(\d+)/g)].map((m) => m[1]));
+  return ids.size === 1 ? [...ids][0] : null;
+}
+
+/** Text of a Contentful rich-text document (nested nodes with `value`s), or a plain string. */
+function plainText(node: unknown): string {
+  if (typeof node === "string") return node;
+  if (!node || typeof node !== "object") return "";
+  if (Array.isArray(node)) return node.map(plainText).join("");
+  const { value, content, nodeType } = node as { value?: unknown; content?: unknown; nodeType?: unknown };
+  return (typeof value === "string" ? value : "") + plainText(content) + (nodeType === "paragraph" ? "\n" : "");
 }
 
 /** Event id -> { url, imageUrl } from the visible cards. */

@@ -21,6 +21,8 @@ export const hugmyndir: Source = {
       description: idea.text,
       url: idea.url ?? "",
       tags: idea.tags,
+      minAge: null,
+      audience: idea.family ? ("fjolskylda" as const) : null,
     }));
   },
 };

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CATEGORIES, type FeedCategory, type FeedItem } from "@/lib/feed-types";
+import { CATEGORIES, fitsAgeGroup, type FeedCategory, type FeedItem } from "@/lib/feed-types";
+import { AgeFilter, useAgeGroup } from "./AgeFilter";
 import { DetailDialog } from "./DetailDialog";
 import { MovieShelf, PlaceList, PlaceRow } from "./FeedModules";
 import { Icon } from "./Icon";
@@ -24,20 +25,24 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
   const [open, setOpen] = useState<FeedItem | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const { plan, loaded, requestRandom } = useSaved();
+  const { age, setAge } = useAgeGroup();
+
+  // Everything for the chosen age; the category and search filter this further.
+  const forAge = useMemo(() => (age === "all" ? items : items.filter((item) => fitsAgeGroup(item, age))), [items, age]);
 
   const visible = useMemo(() => {
     const q = normalise(query);
-    return items.filter(
+    return forAge.filter(
       (item) =>
         (category === "all" || item.category === category) &&
         (!q || normalise(`${item.title} ${item.place} ${item.subtitle ?? ""} ${item.categoryLabel}`).includes(q)),
     );
-  }, [items, category, query]);
+  }, [forAge, category, query]);
 
   const openRandom = useCallback(() => {
-    const pool = visible.length ? visible : items;
+    const pool = visible.length ? visible : forAge;
     if (pool.length) setOpen(pool[Math.floor(Math.random() * pool.length)]);
-  }, [visible, items]);
+  }, [visible, forAge]);
 
   // "Veldu fyrir mig" from the header (event) or from another page (#random).
   useEffect(() => {
@@ -70,7 +75,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
   const pools = visible.filter((i) => i.kind === "pool");
   const ideas = visible.filter((i) => i.kind === "idea");
   // The sidebar shows the next few events (open places are already in the feed).
-  const nextUp = items
+  const nextUp = forAge
     .filter((i) => i.kind === "event" && i.startsAt)
     .sort((a, b) => a.startsAt!.localeCompare(b.startsAt!))
     .slice(0, 5);
@@ -115,6 +120,8 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
           </label>
         </div>
 
+        <AgeFilter />
+
         <div className="stories" role="group" aria-label="Flokkar">
           <button type="button" className="story" aria-pressed={category === "all"} onClick={() => setCategory("all")}>
             <span className="story-ring">
@@ -123,7 +130,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
             Allt
           </button>
           {CATEGORIES.map((c) => {
-            const image = items.find((i) => i.category === c.id && i.imageUrl)?.imageUrl;
+            const image = forAge.find((i) => i.category === c.id && i.imageUrl)?.imageUrl;
             return (
               <button
                 key={c.id}
@@ -151,13 +158,18 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
         ) : (
           <div className="empty">
             <h2>Ekkert fannst</h2>
-            <p>Prófaðu annað leitarorð eða annan flokk.</p>
+            <p>
+              {age === "all"
+                ? "Prófaðu annað leitarorð eða annan flokk."
+                : "Prófaðu annað leitarorð, annan flokk eða annan aldurshóp."}
+            </p>
             <button
               className="btn"
               type="button"
               onClick={() => {
                 setQuery("");
                 setCategory("all");
+                setAge("all");
               }}
             >
               Sýna allt

@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ScrapedItem, ScrapedOccurrence, Source } from "../types";
+import { movieRating } from "../lib/ages";
 import { absoluteUrl, clean, icelandTimeToIso } from "../lib/text";
 
 /**
@@ -70,6 +71,7 @@ export function parseShowtimes(html: string): ScrapedItem[] {
       url: `${BASE}/mynd/?id=${movieId}`,
       imageUrl: absoluteUrl($block.find(".poster img").first().attr("src"), BASE),
       tags: ageRating ? [ageRating] : [],
+      ...movieRating(ageRating), // "Bönnuð innan 12 ára" -> minAge 12
       occurrences,
     });
   });

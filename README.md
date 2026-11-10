@@ -51,36 +51,60 @@ git add --dry-run .
 
 ### The website
 
-The layout follows `Concept og Wireframe/AI concept` (nav rail on desktop, bottom bar
-on phones, photo feed with a sidebar). The visual style is our own: a warm light
+The layout follows our earlier AI concept design (nav rail on desktop, bottom bar
+on phones, photo feed with a sidebar); the concept and wireframes are kept on the
+`concept` branch. The visual style is our own: a warm light
 background with one coral accent, the Schibsted Grotesk typeface, and plain
 information instead of slogans. All colours are tokens at the top of
 `src/app/globals.css`, so the theme is easy to change.
 
 | Page | What it shows |
 | --- | --- |
-| `/` Í dag | Deals and events as photo posts, with compact sections in between: activities open today (exhibitions, climbing, bowling, skating, laser tag...), a poster shelf of today's movies, our own ideas, happy hours and pools. Category circles, search (`/` to focus), "Veldu fyrir mig" (random pick) |
-| `/events` Viðburðir | Upcoming events as a list grouped by day, filters: í dag, á morgun, um helgina, næstu 7 daga |
-| `/map` Kort | OpenStreetMap map with every place we have coordinates for |
+| `/` Í dag | Deals and events as photo posts, with compact sections in between: activities open today (exhibitions, climbing, bowling, skating, laser tag...), a poster shelf of today's movies, our own ideas, happy hours and pools. Age filter, category circles, search (`/` to focus), "Veldu fyrir mig" (random pick) |
+| `/events` Viðburðir | Upcoming events as a list grouped by day. Age filter, plus day filters: í dag, á morgun, um helgina, næstu 7 daga |
+| `/map` Kort | OpenStreetMap map with every place we have coordinates for (age filter too) |
 | `/plan` Planið | Things you put on your plan, and things you saved (♥) |
 
-"Vista" and "Á planið" are stored in the browser (`localStorage`), so no accounts are needed yet.
+"Vista", "Á planið" and the chosen age group are stored in the browser (`localStorage`), so no accounts are needed yet.
 
 Where things are:
 
 - `src/lib/feed.ts` turns database rows into `FeedItem`s (all text and dates are formatted on the server).
+- `src/lib/feed-types.ts` has the shared types and the age-filter rules (`fitsAgeGroup`).
 - `src/lib/format.ts` has Icelandic dates/prices without `Intl`, so server and browser render exactly the same text.
-- `src/components/` has the UI: `Feed`, `PostCard`, `FeedModules` (movie shelf, place lists), `IdeaCards`, `EventsView`, `PlanView`, `PlacesMap`, `DetailDialog`.
+- `src/components/` has the UI: `Feed`, `PostCard`, `FeedModules` (movie shelf, place lists), `IdeaCards`, `EventsView`, `PlanView`, `PlacesMap`, `DetailDialog`, `AgeFilter`.
+- `src/app/globals.css` has all styles, with design tokens (colours, radii) at the top.
+
+### Age filter (Aldur)
+
+Above the feed, the events list and the map: **Allir · 0–14 ára · Fjölskyldan · 15–19 ára · 20+**.
+20 is the drinking age in Iceland, so anything with alcohol is only shown under 20+.
+
+The scraper saves two things per item (`items.min_age`, `items.audience`); the rules are in
+`scraper/lib/ages.ts`:
+
+| What | How we know |
+| --- | --- |
+| Alcohol → 20+ | Happy hours; deals and events whose title mentions a drink (bjór, vín, kokteill, mímósa...) |
+| Age limits (18+, 20+) | Event descriptions on tix.is: "18 ára aldurstakmark", "Aldurstakmark er 20 ár"... A limit only for the evening shows doesn't count for the whole event |
+| Movie ratings | kvikmyndir.is: "Öllum leyfð" = family, "Bönnuð innan 12 ára" = 12+ |
+| For children | Library events in the "Börn" category |
+| For families | Pools, activities (laser tag, bowling, skating, climbing, museums), tix.is categories like "Fjölskyldan" or "Barna", "frítt fyrir 12 ára og yngri", and ideas marked `family: true` |
+
+What each group shows: **0–14** = for children or families, or allowed from 14 or younger
+(e.g. a 12+ movie); **Fjölskyldan** = for children or families; **15–19** = everything except
+children-only and 20+ (18+ events are shown, marked "18+"); **20+** = everything except
+children-only. Cards show "20+", "16+", "Börn"... and the details dialog says the age.
 
 ### Our own ideas (Hugmyndabankinn)
 
 `scraper/content/ideas.ts` is a hand-written list of free or cheap things to do
 (walks, game nights, aurora hunting, a home movie night...). Edit it freely:
 each idea has a title, a short text, tags (`Frítt`, `Úti`, `Vinahópur`...), an
-optional list of months it's shown in, and an optional link. `npm run scrape`
-loads the ideas that are in season into the database, and the site shows them as
-coloured cards (a different order each day).
-- `src/app/globals.css` has all styles, with design tokens (colours, radii) at the top.
+optional list of months it's shown in, `family: true` if it also works with
+children, and an optional link. `npm run scrape` loads the ideas that are in
+season into the database, and the site shows them as coloured cards (a
+different order each day).
 
 ### How the data flows
 
@@ -92,7 +116,7 @@ art museum, happyhour.is, our ideas  ─┘
 
 - **`db/schema.sql`**: tables (`sources`, `venues`, `items`, `occurrences`, `scrape_runs`) and views (`v_current_items`, `v_today`, `v_upcoming`, `v_open_today`, `v_active_deals`). It runs automatically whenever the database is opened.
 - **Only current data is shown**: `v_current_items` keeps an item only if it was seen in its source's latest *successful* scrape, so things removed from a site disappear after the next run, while a failed run hides nothing.
-- **Changed a table in `db/schema.sql`?** Delete `data/hvad.db` and run `npm run scrape` again, because `CREATE TABLE IF NOT EXISTS` doesn't alter existing tables. (Views are re-created automatically.)
+- **Changed a table in `db/schema.sql`?** `CREATE TABLE IF NOT EXISTS` doesn't alter existing tables, so either delete `data/hvad.db` and run `npm run scrape` again, or add the new column to `ADDED_COLUMNS` in `src/lib/db.ts` so existing databases get it automatically (that's how `min_age`/`audience` were added). Views are re-created automatically.
 - **Opening hours** (pools, happy hours, Smárabíó's entertainment area) are stored as concrete time slots for the next 7 days (`scraper/lib/schedule.ts`), so "what's open now?" is a simple SQL query.
 - **Movies from several sources** are merged on the page by a normalised title (`items.match_key`), so "Iceguys – kvikmyndin" (kvikmyndir.is) and "IceGuys the Movie" (Smárabíó) become one card.
 - **`scraper/sources/`**: one file per website. Each returns a list of items; `scraper/lib/store.ts` upserts them into SQL, so re-running the scraper updates rows instead of duplicating them.
@@ -102,14 +126,14 @@ art museum, happyhour.is, our ideas  ─┘
 
 | Source | What we get |
 | --- | --- |
-| kvikmyndir.is | Today's showtimes in Icelandic cinemas, with links to buy tickets |
+| kvikmyndir.is | Today's showtimes in Icelandic cinemas, with links to buy tickets and age ratings |
 | bioparadis.is | Bíó Paradís program for ~6 days, with subtitle language and series/festival labels |
 | smarabio.is | Smárabíó showtimes for the next 7 days (screen: MAX, Lúxus...), plus **Lasertag** (own opening hours, group size), **Leiktækjasalur** (prices) and **Fótboltaland** (no page of its own on the site, so it gets the entertainment area's hours and is only added while the site mentions it) |
-| tix.is | Concerts, theatre and events, with dates, venues and prices |
+| tix.is | Concerts, theatre and events, with dates, venues, prices and age limits |
 | hopkaup.is | Restaurant and activity deals, with price, original price and discount % |
 | reykjavik.is | Opening hours of Reykjavík's 8 pools (incl. holiday hours), address, photo, description |
 | happyhour.is | Happy hours: times, weekdays, address and map coordinates |
-| borgarbokasafn.is | City Library events: craft evenings, writing workshops, talks... (events only for small children are skipped) |
+| borgarbokasafn.is | City Library events: craft evenings, writing workshops, talks, story hours for children (shown under 0–14) |
 | listasafnreykjavikur.is | Current exhibitions in Hafnarhús, Kjarvalsstaðir and Ásmundarsafn, with each building's opening hours |
 | skautaholl.is | Public skating sessions at Skautahöllin í Laugardal |
 | keiluhollin.is | Bowling hours at Keiluhöllin Egilshöll |

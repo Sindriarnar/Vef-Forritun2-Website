@@ -40,6 +40,10 @@ AGENTS.md
 .env.*
 !.env.example
 *.pem
+*.key
+*.p12
+*.pfx
+*service-account*.json
 
 # ---------------------------------------------------------------
 # Local SQLite database created by the scraper (re-create it with

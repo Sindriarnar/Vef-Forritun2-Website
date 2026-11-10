@@ -1,9 +1,11 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as LeafletMap, Marker } from "leaflet";
+import { fitsAgeGroup } from "@/lib/feed-types";
 import type { MapPlace } from "@/lib/queries";
+import { AgeFilter, AgePill, useAgeGroup } from "./AgeFilter";
 import { Icon } from "./Icon";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -20,11 +22,19 @@ const CATEGORY_LABEL: Record<string, string> = {
  * "Kortið": a real map (OpenStreetMap) with every place the scraper has
  * coordinates for, plus a list next to it.
  */
-export function PlacesMap({ places }: { places: MapPlace[] }) {
+export function PlacesMap({ places: allPlaces }: { places: MapPlace[] }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markers = useRef(new Map<number, Marker>());
   const [selected, setSelected] = useState<number | null>(null);
+  const { age } = useAgeGroup();
+  const places = useMemo(
+    () =>
+      age === "all"
+        ? allPlaces
+        : allPlaces.filter((p) => fitsAgeGroup({ minAge: p.min_age, audience: p.audience }, age)),
+    [allPlaces, age],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -80,40 +90,47 @@ export function PlacesMap({ places }: { places: MapPlace[] }) {
   }
 
   return (
-    <div className="map-workspace">
-      <div className="map-sidebar">
-        <div className="map-sidebar-heading">
-          <h2>Staðir á kortinu</h2>
-          <span>{String(places.length).padStart(2, "0")}</span>
-        </div>
-        <div className="map-list">
-          {places.map((place) => (
-            <button
-              key={place.item_id}
-              type="button"
-              className="map-list-item"
-              aria-pressed={selected === place.item_id}
-              onClick={() => focus(place)}
-            >
-              {place.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={place.image_url} alt="" loading="lazy" />
-              ) : (
-                <span className="map-item-icon">
-                  <Icon name="pin" />
+    <>
+      <AgeFilter />
+      <div className="map-workspace">
+        <div className="map-sidebar">
+          <div className="map-sidebar-heading">
+            <h2>Staðir á kortinu</h2>
+            <span>{String(places.length).padStart(2, "0")}</span>
+          </div>
+          <div className="map-list">
+            {places.map((place) => (
+              <button
+                key={place.item_id}
+                type="button"
+                className="map-list-item"
+                aria-pressed={selected === place.item_id}
+                onClick={() => focus(place)}
+              >
+                {place.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={place.image_url} alt="" loading="lazy" />
+                ) : (
+                  <span className="map-item-icon">
+                    <Icon name="pin" />
+                  </span>
+                )}
+                <span className="map-item-copy">
+                  <strong>
+                    {place.title}
+                    <AgePill item={{ minAge: place.min_age, audience: place.audience }} />
+                  </strong>
+                  <small>{CATEGORY_LABEL[place.category] ?? place.category}</small>
+                  {place.address && <span>{place.address}</span>}
                 </span>
-              )}
-              <span className="map-item-copy">
-                <strong>{place.title}</strong>
-                <small>{CATEGORY_LABEL[place.category] ?? place.category}</small>
-                {place.address && <span>{place.address}</span>}
-              </span>
-            </button>
-          ))}
+              </button>
+            ))}
+            {places.length === 0 && <p className="hint">Engir staðir á kortinu fyrir þennan aldurshóp.</p>}
+          </div>
         </div>
+        <div className="map-canvas" ref={container} aria-label="Kort af Reykjavík með stöðum" />
       </div>
-      <div className="map-canvas" ref={container} aria-label="Kort af Reykjavík með stöðum" />
-    </div>
+    </>
   );
 }
 

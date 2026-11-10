@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { FeedItem } from "@/lib/feed-types";
+import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
+import { AgeFilter, AgePill, useAgeGroup } from "./AgeFilter";
 import { DetailDialog } from "./DetailDialog";
 import { Icon } from "./Icon";
 import { useSaved } from "./SavedProvider";
@@ -20,12 +21,14 @@ type Filter = (typeof FILTERS)[number]["id"];
 export function EventsView({ events }: { events: FeedItem[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<FeedItem | null>(null);
+  const { age, setAge } = useAgeGroup();
 
   const visible = useMemo(() => {
-    if (filter === "all") return events;
+    const forAge = age === "all" ? events : events.filter((e) => fitsAgeGroup(e, age));
+    if (filter === "all") return forAge;
     const [from, to] = range(filter, new Date());
-    return events.filter((e) => e.startsAt && e.startsAt >= from && e.startsAt < to);
-  }, [events, filter]);
+    return forAge.filter((e) => e.startsAt && e.startsAt >= from && e.startsAt < to);
+  }, [events, filter, age]);
 
   // Group by day, keeping the order (events are sorted by start time).
   const days = useMemo(() => {
@@ -45,6 +48,8 @@ export function EventsView({ events }: { events: FeedItem[] }) {
         <h1>Viðburðir</h1>
         <p>Tónleikar, leiksýningar, uppistand og fleira næstu vikurnar.</p>
       </div>
+
+      <AgeFilter />
 
       <div className="filter-bar">
         <div className="chips" role="group" aria-label="Velja tímabil">
@@ -75,8 +80,19 @@ export function EventsView({ events }: { events: FeedItem[] }) {
       ) : (
         <div className="empty">
           <h2>Ekkert á dagskrá þá</h2>
-          <p>Prófaðu annan dag eða skoðaðu alla viðburði.</p>
-          <button className="btn" type="button" onClick={() => setFilter("all")}>
+          <p>
+            {age === "all"
+              ? "Prófaðu annan dag eða skoðaðu alla viðburði."
+              : "Prófaðu annan dag, annan aldurshóp eða skoðaðu alla viðburði."}
+          </p>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              setFilter("all");
+              setAge("all");
+            }}
+          >
             Sýna alla viðburði
           </button>
         </div>
@@ -116,6 +132,7 @@ function EventRow({ event, onOpen }: { event: FeedItem; onOpen: (item: FeedItem)
           <button type="button" onClick={() => onOpen(event)}>
             {event.title}
           </button>
+          <AgePill item={event} />
         </h3>
         <p>
           <strong>kl. {event.timeLabel}</strong> · {event.place}

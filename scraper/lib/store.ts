@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import type { ScrapedItem, Source, VenueDetails } from "../types";
+import { resolveAges } from "./ages";
 import { matchKey } from "./text";
 
 type DB = Database.Database;
@@ -61,11 +62,11 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
     `INSERT INTO items (
         source_id, external_id, category, title, match_key, subtitle, description, url,
         image_url, provider, venue_id, price_isk, original_price_isk,
-        discount_percent, tags, valid_from, valid_until
+        discount_percent, tags, min_age, audience, valid_from, valid_until
      ) VALUES (
         @sourceId, @externalId, @category, @title, @matchKey, @subtitle, @description, @url,
         @imageUrl, @provider, @venueId, @priceIsk, @originalPriceIsk,
-        @discountPercent, @tags, @validFrom, @validUntil
+        @discountPercent, @tags, @minAge, @audience, @validFrom, @validUntil
      )
      ON CONFLICT (source_id, external_id) DO UPDATE SET
         category           = excluded.category,
@@ -81,7 +82,9 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
         original_price_isk = excluded.original_price_isk,
         discount_percent   = excluded.discount_percent,
         tags               = excluded.tags,
-        valid_from         = excluded.valid_from,
+        min_age            = excluded.min_age,
+        audience           = excluded.audience,
+        valid_from        = excluded.valid_from,
         valid_until        = excluded.valid_until,
         last_seen_at       = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
      RETURNING id`,
@@ -108,6 +111,7 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
 
   const saveAll = db.transaction((rows: ScrapedItem[]) => {
     for (const item of rows) {
+      const ages = resolveAges(item);
       const { id: itemId } = upsertItem.get({
         sourceId,
         externalId: item.externalId,
@@ -124,6 +128,8 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
         originalPriceIsk: item.originalPriceIsk ?? null,
         discountPercent: item.discountPercent ?? null,
         tags: item.tags?.length ? item.tags.join(",") : null,
+        minAge: ages.minAge,
+        audience: ages.audience,
         validFrom: item.validFrom ?? null,
         validUntil: item.validUntil ?? null,
       }) as { id: number };

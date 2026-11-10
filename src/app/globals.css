@@ -1,7 +1,7 @@
 /*
  * Hvað á að gera? — styles
  *
- * Layout follows the AI concept ("Concept og Wireframe/AI concept"):
+ * Layout follows our AI concept design (on the `concept` branch):
  * left nav rail on desktop, bottom bar on phones, photo feed with a
  * sidebar on wide screens. The visual style is our own: a warm light
  * "paper" background, near-black text, one coral accent, Schibsted
@@ -250,6 +250,82 @@ code {
 .badge-discount + .badge-date {
   left: auto;
   right: 12px;
+}
+
+/* age limit on a photo, bottom left: "18+", "Börn" */
+.badge-age {
+  top: auto;
+  bottom: 12px;
+  background: var(--overlay);
+  color: var(--text);
+  backdrop-filter: blur(6px);
+}
+
+/* the same next to a title */
+.age-pill {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+
+/* movie rating in the corner of a poster */
+.poster {
+  position: relative;
+}
+
+.poster .age-pill {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  margin: 0;
+}
+
+/* 20+ = alcohol or a 20 ára aldurstakmark: stands out a little more */
+.badge-age[data-strong],
+.age-pill[data-strong] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+/* ---------- age filter ---------- */
+
+.age-filter {
+  margin-bottom: 18px;
+}
+
+.age-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.age-filter-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.age-filter .chip {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.age-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .icon-toggle {
@@ -2073,6 +2149,21 @@ body:has(dialog[open]) {
   .stories {
     padding: 2px 16px 8px;
     margin-bottom: 14px;
+  }
+
+  .feed-column .age-filter {
+    padding-inline: 16px;
+  }
+
+  /* one scrollable row of age buttons instead of wrapping */
+  .age-filter .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .age-filter .chip {
+    flex: none;
   }
 
   .story {

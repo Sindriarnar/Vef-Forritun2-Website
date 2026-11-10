@@ -44,6 +44,8 @@ export function dealToItem(deal: DealRow): FeedItem {
     whenLabel: null,
     isLive: false,
     startsAt: null,
+    minAge: deal.min_age,
+    audience: deal.audience,
   };
 }
 
@@ -71,6 +73,8 @@ export function movieToItem(movie: MovieToday): FeedItem {
     whenLabel: next ? `Næsta sýning kl. ${formatTime(next.startsAt)}` : null,
     isLive: false,
     startsAt: next?.startsAt ?? null,
+    minAge: movie.min_age,
+    audience: movie.audience,
     showtimes: movie.showtimes.map((s) => ({
       time: formatTime(s.startsAt),
       venue: s.venue,
@@ -109,6 +113,8 @@ export function eventToItem(event: EventRow): FeedItem {
     dayKey: event.next_start.slice(0, 10),
     dayHeading: formatDayHeading(event.next_start),
     dateParts: dateParts(event.next_start),
+    minAge: event.min_age,
+    audience: event.audience,
   };
 }
 
@@ -156,6 +162,8 @@ export function placeToItem(place: OpenPlace): FeedItem {
     isLive: place.is_open_now === 1,
     startsAt: place.starts_at,
     timeLabel: `${from}–${until}`,
+    minAge: place.min_age,
+    audience: place.audience,
     lat: place.lat,
     lng: place.lng,
   };
@@ -191,6 +199,8 @@ export function ideaToItem(idea: IdeaRow): FeedItem {
     isLive: false,
     startsAt: null,
     tags,
+    minAge: idea.min_age,
+    audience: idea.audience,
   };
 }
 

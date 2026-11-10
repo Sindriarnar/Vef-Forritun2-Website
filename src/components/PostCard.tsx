@@ -1,11 +1,12 @@
 "use client";
 
-import type { FeedItem } from "@/lib/feed-types";
+import { ageBadge, type FeedItem } from "@/lib/feed-types";
 import { Icon } from "./Icon";
 import { useSaved } from "./SavedProvider";
 
 /** A big feed post (deals and events): photo, caption below it, actions. */
 export function PostCard({ item, onOpen }: { item: FeedItem; onOpen: (item: FeedItem) => void }) {
+  const age = ageBadge(item);
   return (
     <article className="post">
       <header className="post-head">
@@ -28,6 +29,11 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen: (item: Feed
         {item.dateParts && (
           <span className="badge badge-date">
             {item.dateParts.weekday} {item.dateParts.day}. {item.dateParts.month}
+          </span>
+        )}
+        {age && (
+          <span className="badge badge-age" data-strong={age === "20+" || undefined}>
+            {age}
           </span>
         )}
       </button>

@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { getDb } from "./db";
+import type { Audience } from "./feed-types";
 
 /**
  * Read-only queries the website uses. They go through the SQL views in
@@ -12,7 +13,13 @@ import { getDb } from "./db";
  * the site always shows what the scraper last stored.
  */
 
-export interface DealRow {
+/** Who an item suits (items.min_age / items.audience, used by the age filter). */
+interface AgeColumns {
+  min_age: number | null;
+  audience: Audience | null;
+}
+
+export interface DealRow extends AgeColumns {
   item_id: number;
   category: "food_deal" | "activity_deal";
   title: string;
@@ -32,7 +39,7 @@ export interface ShowtimeRow {
   note: string | null;
 }
 
-export interface MovieToday {
+export interface MovieToday extends AgeColumns {
   key: string; // match_key, or the item id if missing
   title: string;
   subtitle: string | null;
@@ -42,7 +49,7 @@ export interface MovieToday {
   showtimes: ShowtimeRow[];
 }
 
-export interface EventRow {
+export interface EventRow extends AgeColumns {
   item_id: number;
   title: string;
   image_url: string | null;
@@ -56,7 +63,7 @@ export interface EventRow {
   source_name: string;
 }
 
-export interface OpenPlace {
+export interface OpenPlace extends AgeColumns {
   item_id: number;
   category: "pool" | "happy_hour" | "activity";
   title: string;
@@ -76,7 +83,7 @@ export interface OpenPlace {
   is_open_now: 0 | 1;
 }
 
-export interface IdeaRow {
+export interface IdeaRow extends AgeColumns {
   item_id: number;
   external_id: string;
   title: string;
@@ -85,7 +92,7 @@ export interface IdeaRow {
   tags: string | null;
 }
 
-export interface MapPlace {
+export interface MapPlace extends AgeColumns {
   item_id: number;
   category: string;
   title: string;
@@ -102,7 +109,7 @@ export async function getActiveDeals(limit = 40): Promise<DealRow[]> {
   return getDb()
     .prepare(
       `SELECT item_id, category, title, provider, url, image_url,
-              price_isk, original_price_isk, discount_percent, source_name
+              price_isk, original_price_isk, discount_percent, source_name, min_age, audience
          FROM v_active_deals
         LIMIT ?`,
     )
@@ -120,11 +127,11 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
   const rows = getDb()
     .prepare(
       `SELECT item_id, match_key, title, subtitle, image_url, item_url, source_name,
-              starts_at, venue_name, url, note
+              starts_at, venue_name, url, note, min_age, audience
          FROM v_today
         WHERE category = 'movie'`,
     )
-    .all() as {
+    .all() as (AgeColumns & {
     item_id: number;
     match_key: string | null;
     title: string;
@@ -136,7 +143,7 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
     venue_name: string | null;
     url: string;
     note: string | null;
-  }[];
+  })[];
 
   // Lower number = preferred. Cinemas' own sites first for showtimes,
   // kvikmyndir.is first for the movie title/poster (Icelandic titles).
@@ -160,7 +167,7 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
     };
     let movie = movies.get(key);
     if (!movie) {
-      movie = { ...info, showtimes: [] };
+      movie = { ...info, min_age: null, audience: null, showtimes: [] };
       movies.set(key, movie);
       infoSource.set(key, infoRank(row.source_name));
     } else if (infoRank(row.source_name) < infoSource.get(key)!) {
@@ -169,6 +176,10 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
     }
     movie.image_url ??= row.image_url;
     movie.subtitle ??= row.subtitle;
+    // Only kvikmyndir.is has the rating; keep the strictest one any source gives.
+    if (row.min_age !== null && (movie.min_age === null || row.min_age > movie.min_age)) movie.min_age = row.min_age;
+    movie.audience ??= row.audience;
+    if (movie.min_age !== null) movie.audience = null;
 
     const showtimeKey = `${key}|${row.starts_at}|${row.venue_name}`;
     if (seenShowtimes.has(showtimeKey)) continue;
@@ -192,6 +203,7 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
   return getDb()
     .prepare(
       `SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, source_name,
+              min_age, audience,
               MIN(starts_at) AS next_start,
               COUNT(*)       AS date_count
          FROM v_upcoming
@@ -214,7 +226,7 @@ export async function getOpenToday(categories: OpenPlace["category"][]): Promise
   return getDb()
     .prepare(
       `SELECT o.item_id, o.category, o.title, o.subtitle, o.description, o.provider, o.url,
-              o.image_url, i.price_isk, i.tags, o.address, o.lat, o.lng, s.name AS source_name,
+              o.image_url, i.price_isk, i.tags, i.min_age, i.audience, o.address, o.lat, o.lng, s.name AS source_name,
               MIN(o.starts_at) AS starts_at, o.ends_at, o.is_open_now
          FROM v_open_today o
          JOIN items i   ON i.id = o.item_id
@@ -231,7 +243,7 @@ export async function getIdeas(): Promise<IdeaRow[]> {
   await connection();
   return getDb()
     .prepare(
-      `SELECT id AS item_id, external_id, title, description, url, tags
+      `SELECT id AS item_id, external_id, title, description, url, tags, min_age, audience
          FROM v_current_items
         WHERE category = 'idea'`,
     )
@@ -243,7 +255,7 @@ export async function getMapPlaces(): Promise<MapPlace[]> {
   await connection();
   return getDb()
     .prepare(
-      `SELECT i.id AS item_id, i.category, i.title, i.url, i.image_url,
+      `SELECT i.id AS item_id, i.category, i.title, i.url, i.image_url, i.min_age, i.audience,
               v.name AS venue_name, v.address, v.lat, v.lng
          FROM v_current_items i
          JOIN venues v ON v.id = i.venue_id

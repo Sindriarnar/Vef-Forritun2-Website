@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { FeedItem } from "@/lib/feed-types";
+import { ageText, type FeedItem } from "@/lib/feed-types";
 import { Icon } from "./Icon";
 import { Price } from "./PostCard";
 import { useSaved } from "./SavedProvider";
@@ -21,6 +21,7 @@ export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose
   const saved = item ? isFavorite(item.id) : false;
   const planned = item ? inPlan(item.id) : false;
   const poster = item?.kind === "movie";
+  const age = item ? ageText(item) : null;
 
   return (
     <dialog
@@ -73,6 +74,12 @@ export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose
                     {item.isLive && <span className="dot" aria-hidden="true" />}
                     {item.whenLabel}
                   </dd>
+                </div>
+              )}
+              {age && (
+                <div>
+                  <dt>Aldur</dt>
+                  <dd>{age}</dd>
                 </div>
               )}
               {item.priceLabel && (

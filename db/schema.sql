@@ -16,8 +16,9 @@
 -- NOTE while we are in early development: CREATE TABLE IF NOT EXISTS
 -- does not change a table that already exists. After changing a table
 -- here, delete data/hvad.db and run `npm run scrape` again (the data is
--- all re-scrapable). Views are dropped and re-created every time, so
--- changing a view needs no reset.
+-- all re-scrapable), or add the new column in addMissingColumns() in
+-- src/lib/db.ts so existing databases get it too. Views are dropped and
+-- re-created every time, so changing a view needs no reset.
 --
 -- All timestamps are stored as ISO-8601 UTC strings, e.g.
 -- '2026-11-09T20:00:00Z'. Iceland is on UTC all year (no daylight
@@ -77,6 +78,13 @@ CREATE TABLE IF NOT EXISTS items (
   original_price_isk  INTEGER,            -- price before discount
   discount_percent    INTEGER CHECK (discount_percent BETWEEN 0 AND 100),
   tags                TEXT,               -- comma separated, e.g. 'Tónlist,Rokk'
+  -- Who it suits, for the age filter (see scraper/lib/ages.ts):
+  min_age             INTEGER,            -- youngest age allowed: 20 = alcohol, 18 = 18+ event,
+                                          -- 12 = "Bönnuð innan 12 ára"... NULL = no known limit
+  audience            TEXT CHECK (audience IN (
+                        'born',           -- made for children
+                        'fjolskylda'      -- good for the whole family
+                      )),                 -- NULL = for teens and adults
   valid_from          TEXT,               -- for deals
   valid_until         TEXT,               -- for deals
   first_seen_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
@@ -150,6 +158,8 @@ SELECT
   i.image_url,
   i.price_isk,
   i.tags,
+  i.min_age,
+  i.audience,
   o.starts_at,
   o.ends_at,
   o.note,
@@ -186,10 +196,12 @@ SELECT
   i.provider,
   i.url,
   i.image_url,
+  i.min_age,
+  i.audience,
   o.starts_at,
   o.ends_at,
   o.note,
-  (o.starts_at <= strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) AS is_open_now,
+  (o.starts_at <=strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) AS is_open_now,
   v.name                        AS venue_name,
   v.address,
   v.lat,
@@ -216,6 +228,8 @@ SELECT
   i.original_price_isk,
   i.discount_percent,
   i.valid_until,
+  i.min_age,
+  i.audience,
   s.name        AS source_name
 FROM v_current_items i
 JOIN sources s ON s.id = i.source_id

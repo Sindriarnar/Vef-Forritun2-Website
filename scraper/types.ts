@@ -11,6 +11,13 @@ export type Category =
   | "happy_hour"
   | "idea";
 
+/**
+ * Must match the CHECK constraint on items.audience:
+ * "born" = made for children, "fjolskylda" = good for the whole family.
+ * See lib/ages.ts.
+ */
+export type Audience = "born" | "fjolskylda";
+
 /** Extra facts about a venue; saved on the venues row when known. */
 export interface VenueDetails {
   address?: string | null;
@@ -44,6 +51,12 @@ export interface ScrapedItem {
   originalPriceIsk?: number | null;
   discountPercent?: number | null;
   tags?: string[];
+  /**
+   * Who it suits (lib/ages.ts). Leave both out to use the category's
+   * default (e.g. happy hour = 20, pools = family).
+   */
+  minAge?: number | null;
+  audience?: Audience | null;
   validFrom?: string | null;
   validUntil?: string | null;
   occurrences?: ScrapedOccurrence[];

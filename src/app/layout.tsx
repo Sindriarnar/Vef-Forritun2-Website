@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Schibsted_Grotesk } from "next/font/google";
 import Link from "next/link";
+import { AgeProvider } from "@/components/AgeFilter";
 import { LogoMark } from "@/components/Logo";
 import { SavedProvider } from "@/components/SavedProvider";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -27,25 +28,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="is" className={font.variable}>
       <body>
         <SavedProvider>
-          <a className="skip-link" href="#main">
-            Fara beint í efni
-          </a>
-          <SiteHeader />
-          <main id="main" tabIndex={-1}>
-            {children}
-          </main>
-          <footer className="site-footer">
-            <div className="footer-inner">
-              <Link href="/" className="footer-brand">
-                <LogoMark />
-                hvað á að gera?
-              </Link>
-              <p>
-                Nemendaverkefni í Vefforritun 2. Upplýsingar eru sóttar af vefjum fyrirtækjanna sjálfra; athugaðu verð
-                og tíma hjá þeim áður en þú ferð.
-              </p>
-            </div>
-          </footer>
+          <AgeProvider>
+            <a className="skip-link" href="#main">
+              Fara beint í efni
+            </a>
+            <SiteHeader />
+            <main id="main" tabIndex={-1}>
+              {children}
+            </main>
+            <footer className="site-footer">
+              <div className="footer-inner">
+                <Link href="/" className="footer-brand">
+                  <LogoMark />
+                  hvað á að gera?
+                </Link>
+                <p>
+                  Nemendaverkefni í Vefforritun 2. Upplýsingar eru sóttar af vefjum fyrirtækjanna sjálfra; athugaðu
+                  verð og tíma hjá þeim áður en þú ferð.
+                </p>
+              </div>
+            </footer>
+          </AgeProvider>
         </SavedProvider>
       </body>
     </html>

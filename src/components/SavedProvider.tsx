@@ -5,8 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { FeedItem } from "@/lib/feed-types";
 
 /**
- * "Vista" (favorites) and "Mitt plan", kept in this browser's
- * localStorage like in the AI concept. A full copy of each item is saved
+ * "Vista" (favorites) and "Planið", kept in this browser's
+ * localStorage. A full copy of each item is saved
  * so the plan page works even after the item leaves the feed.
  */
 

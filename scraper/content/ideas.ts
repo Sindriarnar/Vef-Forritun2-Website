@@ -6,6 +6,8 @@
  *
  * - `months`: only shown in these months (1 = janúar ... 12 = desember).
  *   Leave it out for ideas that work all year.
+ * - `family`: also works with children, so it shows up under
+ *   "Fjölskyldan" and "0–14 ára" in the age filter.
  * - `url`: optional link to useful information. Only link to pages you
  *   have checked actually exist.
  * - Keep facts general (no prices or opening hours that can go stale).
@@ -19,6 +21,7 @@ export interface Idea {
   text: string;
   tags: IdeaTag[];
   months?: number[];
+  family?: boolean;
   url?: string;
 }
 
@@ -31,6 +34,7 @@ export const IDEAS: Idea[] = [
     title: "Ganga upp á Úlfarsfell",
     text: "Stutt fjallganga rétt við borgina. Tekur um einn til tvo tíma upp og niður og útsýnið yfir höfuðborgarsvæðið er þess virði.",
     tags: ["Frítt", "Úti"],
+    family: true,
   },
   {
     id: "nordurljos",
@@ -45,24 +49,28 @@ export const IDEAS: Idea[] = [
     title: "Bíókvöld heima með þema",
     text: "Veljið þema, til dæmis myndir frá 2000, hrollvekjur eða íslenskar myndir. Hver og einn kemur með eitt snarl.",
     tags: ["Frítt", "Inni", "Kvöld", "Vinahópur"],
+    family: true,
   },
   {
     id: "spilakvold",
     title: "Spilakvöld",
     text: "Borðspil, spil eða risastórt púsl. Sá sem tapar velur næsta spil.",
     tags: ["Frítt", "Inni", "Kvöld", "Vinahópur"],
+    family: true,
   },
   {
     id: "sundlaugahopp",
     title: "Prófið nýja sundlaug",
     text: "Farið í sundlaug sem þið hafið aldrei prófað áður og takið kalda pottinn með. Opnunartímar sundlauganna eru hér á síðunni.",
     tags: ["Ódýrt", "Úti"],
+    family: true,
   },
   {
     id: "grotta",
     title: "Gönguferð út í Gróttu",
     text: "Gangið út á Seltjarnarnes og út að vitanum í Gróttu, helst við sólsetur. Athugið að eyjan lokast á flóði.",
     tags: ["Frítt", "Úti", "Fyrir tvö"],
+    family: true,
   },
   {
     id: "elda-saman",
@@ -81,12 +89,14 @@ export const IDEAS: Idea[] = [
     title: "Elliðaárdalur",
     text: "Fossar, skógur og stígar inni í miðri borg. Fínt að labba, hlaupa eða hjóla.",
     tags: ["Frítt", "Úti"],
+    family: true,
   },
   {
     id: "heidmork",
     title: "Skógarganga í Heiðmörk",
     text: "Stórt útivistarsvæði rétt fyrir utan borgina með fjölda göngustíga. Takið nesti með.",
     tags: ["Frítt", "Úti", "Fyrir tvö"],
+    family: true,
   },
   {
     id: "kaffihusarolt",
@@ -99,6 +109,7 @@ export const IDEAS: Idea[] = [
     title: "Bakstursáskorun",
     text: "Allir baka eftir sömu uppskrift og svo er smakkað blint og kosið um bestu útgáfuna.",
     tags: ["Ódýrt", "Inni", "Vinahópur"],
+    family: true,
   },
   {
     id: "nautholsvik",
@@ -113,6 +124,7 @@ export const IDEAS: Idea[] = [
     text: "Rólegur göngutúr um Grasagarðinn, sérstaklega fallegur á sumrin.",
     tags: ["Frítt", "Úti", "Fyrir tvö"],
     months: [...SUMMER, 9],
+    family: true,
     url: "https://grasagardur.is/",
   },
   {
@@ -121,6 +133,7 @@ export const IDEAS: Idea[] = [
     text: "Teppi, nesti og góður félagsskapur við Tjörnina. Hentar vel á björtum sumarkvöldum.",
     tags: ["Ódýrt", "Úti", "Vinahópur"],
     months: SUMMER,
+    family: true,
   },
   {
     id: "jolaljos",
@@ -128,11 +141,13 @@ export const IDEAS: Idea[] = [
     text: "Röltið um miðbæinn, skoðið jólaljósin og gluggana og endið á heitu súkkulaði.",
     tags: ["Ódýrt", "Úti", "Kvöld", "Fyrir tvö"],
     months: [11, 12],
+    family: true,
   },
   {
     id: "karoki-heima",
     title: "Karókíkvöld heima",
     text: "Textarnir eru á YouTube. Skiptið ykkur í lið og látið hina velja lögin fyrir ykkur.",
     tags: ["Frítt", "Inni", "Kvöld", "Vinahópur"],
+    family: true,
   },
 ];

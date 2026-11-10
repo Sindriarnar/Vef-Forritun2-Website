@@ -1,4 +1,5 @@
 import type { Category, ScrapedItem, Source } from "../types";
+import { ageInfo, mentionsAlcohol } from "../lib/ages";
 import { clean, icelandTimeToIso } from "../lib/text";
 
 /**
@@ -68,16 +69,21 @@ export function parseCategoryPage(html: string, category: Category): ScrapedItem
 
   return deals
     .filter((deal) => deal?.id && deal.title && deal.url)
-    .map((deal) => ({
-      externalId: String(deal.id),
-      category,
-      title: clean(deal.title),
-      provider: clean(deal.dealProvider) || null,
-      url: `${BASE}/${deal.url}`,
-      imageUrl: deal.imageUrl ?? null,
-      priceIsk: deal.price ?? null,
-      originalPriceIsk: deal.originalPrice ?? null,
-      discountPercent: deal.discountPercentage ?? null,
-      validFrom: icelandTimeToIso(deal.validFrom?.date),
-    }));
+    .map((deal) => {
+      const title = clean(deal.title);
+      return {
+        externalId: String(deal.id),
+        category,
+        title,
+        provider: clean(deal.dealProvider) || null,
+        url: `${BASE}/${deal.url}`,
+        imageUrl: deal.imageUrl ?? null,
+        priceIsk: deal.price ?? null,
+        originalPriceIsk: deal.originalPrice ?? null,
+        discountPercent: deal.discountPercentage ?? null,
+        validFrom: icelandTimeToIso(deal.validFrom?.date),
+        // "Brunch með mimosu" -> 20+; "Fjölskyldutilboð" -> family
+        ...ageInfo({ alcohol: mentionsAlcohol(title), family: /fjölskyld|krakk|börn/iu.test(title) }),
+      };
+    });
 }
