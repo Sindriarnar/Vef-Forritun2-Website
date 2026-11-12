@@ -180,12 +180,15 @@ CREATE VIEW v_today AS
 SELECT * FROM v_upcoming
 WHERE substr(starts_at, 1, 10) = strftime('%Y-%m-%d', 'now');
 
--- Places with opening hours (pools, happy hours, activities) that are
--- open now or open later today. Unlike v_upcoming, a time slot counts
--- until it *ends*, so a pool that opened at 06:30 still shows at noon.
--- With several slots in a day, the current/next one comes first.
-DROP VIEW IF EXISTS v_open_today;
-CREATE VIEW v_open_today AS
+-- Places with opening hours (pools, happy hours, activities): every
+-- time slot that is open now, opens later today, or opens tomorrow.
+-- Unlike v_upcoming, a slot counts until it *ends*, so a pool that
+-- opened at 06:30 still shows at noon. Tomorrow is included so the site
+-- isn't empty late in the evening when everything has closed; the
+-- website takes each place's first slot (queries.ts, getOpenSoon).
+DROP VIEW IF EXISTS v_open_today; -- the old name, when it was today only
+DROP VIEW IF EXISTS v_open_soon;
+CREATE VIEW v_open_soon AS
 SELECT
   o.id                          AS occurrence_id,
   i.id                          AS item_id,
@@ -201,7 +204,8 @@ SELECT
   o.starts_at,
   o.ends_at,
   o.note,
-  (o.starts_at <=strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) AS is_open_now,
+  (o.starts_at <= strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) AS is_open_now,
+  (substr(o.starts_at, 1, 10) > strftime('%Y-%m-%d', 'now')) AS is_tomorrow,
   v.name                        AS venue_name,
   v.address,
   v.lat,
@@ -211,7 +215,7 @@ JOIN v_current_items i ON i.id = o.item_id
 LEFT JOIN venues v ON v.id = COALESCE(o.venue_id, i.venue_id)
 WHERE i.category IN ('pool', 'happy_hour', 'activity')
   AND o.ends_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-  AND substr(o.starts_at, 1, 10) <= strftime('%Y-%m-%d', 'now')
+  AND substr(o.starts_at, 1, 10) <= strftime('%Y-%m-%d', 'now', '+1 day')
 ORDER BY o.starts_at;
 
 -- Deals that are currently on offer, best discount first.

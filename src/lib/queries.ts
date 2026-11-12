@@ -1,10 +1,11 @@
 import { connection } from "next/server";
 import { getDb } from "./db";
 import type { Audience } from "./feed-types";
+import { altTitleKeys } from "./match";
 
 /**
  * Read-only queries the website uses. They go through the SQL views in
- * db/schema.sql (v_today, v_upcoming, v_open_today, v_active_deals,
+ * db/schema.sql (v_upcoming, v_open_soon, v_active_deals,
  * v_current_items).
  *
  * better-sqlite3 is synchronous, so without `await connection()` Next.js
@@ -39,7 +40,7 @@ export interface ShowtimeRow {
   note: string | null;
 }
 
-export interface MovieToday extends AgeColumns {
+export interface Movie extends AgeColumns {
   key: string; // match_key, or the item id if missing
   title: string;
   subtitle: string | null;
@@ -49,18 +50,27 @@ export interface MovieToday extends AgeColumns {
   showtimes: ShowtimeRow[];
 }
 
+/** The movies showing on one day ("2026-11-12"). */
+export interface MovieDay {
+  day: string;
+  movies: Movie[];
+}
+
 export interface EventRow extends AgeColumns {
   item_id: number;
   title: string;
   image_url: string | null;
   item_url: string;
   venue_name: string | null;
-  next_start: string;
-  date_count: number;
+  next_start: string; // the next start, or the first start on this row's day
+  date_count: number; // how many days the event is on
   price_isk: number | null;
   tags: string | null;
   subtitle: string | null;
   source_name: string;
+  // Only from getEventDays (one row per event per day):
+  times_that_day?: number;
+  day_number?: number; // 1 = the event's first day in the list
 }
 
 export interface OpenPlace extends AgeColumns {
@@ -78,9 +88,10 @@ export interface OpenPlace extends AgeColumns {
   lat: number | null;
   lng: number | null;
   source_name: string;
-  starts_at: string; // the current or next time slot today
+  starts_at: string; // the current time slot, or the next one (today or tomorrow)
   ends_at: string;
   is_open_now: 0 | 1;
+  is_tomorrow: 0 | 1;
 }
 
 export interface IdeaRow extends AgeColumns {
@@ -116,47 +127,81 @@ export async function getActiveDeals(limit = 40): Promise<DealRow[]> {
     .all(limit) as DealRow[];
 }
 
+interface ShowtimeQueryRow extends AgeColumns {
+  item_id: number;
+  match_key: string | null;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  item_url: string;
+  source_name: string;
+  starts_at: string;
+  venue_name: string | null;
+  url: string;
+  note: string | null;
+}
+
 /**
- * Today's movies, merged across sources: the same film from
- * kvikmyndir.is, Bíó Paradís and Smárabíó (same `match_key`) becomes one
- * entry, and a showtime listed by two sources (same time + cinema) is
- * kept once, preferring the cinema's own site (better ticket link/notes).
+ * Movies with showtimes left today, and tomorrow's movies (so there is
+ * something to show late in the evening). Days without showtimes are
+ * left out.
+ *
+ * Movies are merged across sources: the same film from kvikmyndir.is,
+ * Bíó Paradís and Smárabíó (same `match_key`) becomes one entry, and a
+ * showtime listed by two sources (same time + cinema) is kept once,
+ * preferring the cinema's own site (better ticket link/notes).
  */
-export async function getMoviesToday(): Promise<MovieToday[]> {
+export async function getMovieDays(): Promise<MovieDay[]> {
   await connection();
-  const rows = getDb()
+  const db = getDb();
+  const rows = db
     .prepare(
       `SELECT item_id, match_key, title, subtitle, image_url, item_url, source_name,
               starts_at, venue_name, url, note, min_age, audience
-         FROM v_today
-        WHERE category = 'movie'`,
+         FROM v_upcoming
+        WHERE category = 'movie'
+          AND substr(starts_at, 1, 10) <= strftime('%Y-%m-%d', 'now', '+1 day')`,
     )
-    .all() as (AgeColumns & {
-    item_id: number;
-    match_key: string | null;
-    title: string;
-    subtitle: string | null;
-    image_url: string | null;
-    item_url: string;
-    source_name: string;
-    starts_at: string;
-    venue_name: string | null;
-    url: string;
-    note: string | null;
-  })[];
+    .all() as ShowtimeQueryRow[];
 
+  // Every current movie's key with its age rating (the strictest one, if
+  // sources disagree). Bíó Paradís has no ratings, so its films get the
+  // rating kvikmyndir.is gives the same film, even on a day when only
+  // Bíó Paradís has showtimes for it.
+  const ratings = new Map(
+    (
+      db
+        .prepare(
+          `SELECT match_key, MAX(min_age) AS min_age, MAX(audience) AS audience
+             FROM v_current_items
+            WHERE category = 'movie' AND match_key IS NOT NULL
+            GROUP BY match_key`,
+        )
+        .all() as (AgeColumns & { match_key: string })[]
+    ).map((r) => [r.match_key, r]),
+  );
+
+  const byDay = new Map<string, ShowtimeQueryRow[]>();
+  for (const row of rows) {
+    const day = row.starts_at.slice(0, 10);
+    byDay.set(day, [...(byDay.get(day) ?? []), row]);
+  }
+  return [...byDay.keys()].sort().map((day) => ({ day, movies: mergeMovies(byDay.get(day)!, ratings) }));
+}
+
+function mergeMovies(rows: ShowtimeQueryRow[], ratings: Map<string, AgeColumns>): Movie[] {
   // Lower number = preferred. Cinemas' own sites first for showtimes,
   // kvikmyndir.is first for the movie title/poster (Icelandic titles).
   const showtimeRank = (source: string) => (source === "Kvikmyndir.is" ? 1 : 0);
   const infoRank = (source: string) => (source === "Kvikmyndir.is" ? 0 : 1);
   rows.sort((a, b) => showtimeRank(a.source_name) - showtimeRank(b.source_name));
 
-  const movies = new Map<string, MovieToday>();
+  const movies = new Map<string, Movie>();
   const infoSource = new Map<string, number>();
   const seenShowtimes = new Set<string>();
 
   for (const row of rows) {
-    const key = row.match_key || `item-${row.item_id}`;
+    const key = movieKey(row, ratings);
     const info = {
       key,
       title: row.title,
@@ -167,7 +212,12 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
     };
     let movie = movies.get(key);
     if (!movie) {
-      movie = { ...info, min_age: null, audience: null, showtimes: [] };
+      const rating = ratings.get(key) ?? row;
+      const own = (row.match_key ? ratings.get(row.match_key) : null) ?? row;
+      const minAge = Math.max(rating.min_age ?? 0, own.min_age ?? 0) || null;
+      // "Bönnuð innan 12 ára" or stricter is never a family film.
+      const audience = minAge !== null && minAge >= 12 ? null : (rating.audience ?? own.audience);
+      movie = { ...info, min_age: minAge, audience, showtimes: [] };
       movies.set(key, movie);
       infoSource.set(key, infoRank(row.source_name));
     } else if (infoRank(row.source_name) < infoSource.get(key)!) {
@@ -176,10 +226,6 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
     }
     movie.image_url ??= row.image_url;
     movie.subtitle ??= row.subtitle;
-    // Only kvikmyndir.is has the rating; keep the strictest one any source gives.
-    if (row.min_age !== null && (movie.min_age === null || row.min_age > movie.min_age)) movie.min_age = row.min_age;
-    movie.audience ??= row.audience;
-    if (movie.min_age !== null) movie.audience = null;
 
     const showtimeKey = `${key}|${row.starts_at}|${row.venue_name}`;
     if (seenShowtimes.has(showtimeKey)) continue;
@@ -195,7 +241,18 @@ export async function getMoviesToday(): Promise<MovieToday[]> {
   );
 }
 
-/** Upcoming events, one row per event with its next date. */
+/**
+ * The key movies are merged on: the row's match_key, except that a title
+ * with a second title in brackets joins the movie another source lists
+ * under one of the two: "Fjörður (Fjord)" (Bíó Paradís) is "Fjord"
+ * (kvikmyndir.is).
+ */
+function movieKey(row: ShowtimeQueryRow, known: Map<string, unknown>): string {
+  if (!row.match_key) return `item-${row.item_id}`;
+  return altTitleKeys(row.title).find((key) => key !== row.match_key && known.has(key)) ?? row.match_key;
+}
+
+/** Upcoming events, one row per event with its next date (for the front page). */
 export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): Promise<EventRow[]> {
   await connection();
   // SQLite returns the other columns from the row that has MIN(starts_at),
@@ -205,7 +262,7 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
       `SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, source_name,
               min_age, audience,
               MIN(starts_at) AS next_start,
-              COUNT(*)       AS date_count
+              COUNT(DISTINCT substr(starts_at, 1, 10)) AS date_count
          FROM v_upcoming
         WHERE category = 'event'
           AND starts_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '+' || ? || ' days')
@@ -216,8 +273,39 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
     .all(withinDays, limit) as EventRow[];
 }
 
-/** Pools / happy hours / activities that are open now or later today. */
-export async function getOpenToday(categories: OpenPlace["category"][]): Promise<OpenPlace[]> {
+/**
+ * Upcoming events for the events page: one row per event *per day it is
+ * on*, so a show that runs for weeks is listed on every one of its days
+ * (and "what's on the 21st?" finds it). No LIMIT: every day in the
+ * period is complete.
+ */
+export async function getEventDays({ withinDays = 60 } = {}): Promise<EventRow[]> {
+  await connection();
+  return getDb()
+    .prepare(
+      `SELECT e.*,
+              COUNT(*)     OVER (PARTITION BY item_id)                     AS date_count,
+              ROW_NUMBER() OVER (PARTITION BY item_id ORDER BY next_start) AS day_number
+         FROM (
+           SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, source_name,
+                  min_age, audience,
+                  MIN(starts_at) AS next_start,     -- the first time that day
+                  COUNT(*)       AS times_that_day
+             FROM v_upcoming
+            WHERE category = 'event'
+              AND starts_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '+' || ? || ' days')
+            GROUP BY item_id, substr(starts_at, 1, 10)
+         ) e
+        ORDER BY next_start, title`,
+    )
+    .all(withinDays) as EventRow[];
+}
+
+/**
+ * Pools / happy hours / activities with their current or next time slot:
+ * open now first, then opening later today, then opening tomorrow.
+ */
+export async function getOpenSoon(categories: OpenPlace["category"][]): Promise<OpenPlace[]> {
   await connection();
   const placeholders = categories.map(() => "?").join(", ");
   // MIN(starts_at) picks each place's earliest slot that hasn't ended yet,
@@ -227,8 +315,8 @@ export async function getOpenToday(categories: OpenPlace["category"][]): Promise
     .prepare(
       `SELECT o.item_id, o.category, o.title, o.subtitle, o.description, o.provider, o.url,
               o.image_url, i.price_isk, i.tags, i.min_age, i.audience, o.address, o.lat, o.lng, s.name AS source_name,
-              MIN(o.starts_at) AS starts_at, o.ends_at, o.is_open_now
-         FROM v_open_today o
+              MIN(o.starts_at) AS starts_at, o.ends_at, o.is_open_now, o.is_tomorrow
+         FROM v_open_soon o
          JOIN items i   ON i.id = o.item_id
          JOIN sources s ON s.id = i.source_id
         WHERE o.category IN (${placeholders})

@@ -76,16 +76,21 @@ export const skautaholl = venueSource({
   maxLength: 900,
 });
 
-/** Keiluhöllin Egilshöll — bowling (the sports bar's hours on the same page are skipped). */
+/**
+ * Keiluhöllin Egilshöll — bowling. The hours block reads
+ * "Keila Mán - Sun Opið allan daginn Sportbarinn Mán - Mið 17:00 - 22:00 ...":
+ * the first "keila" that is followed by days and hours is used, and the
+ * sports bar's hours right after it are skipped.
+ */
 export const keiluhollin = venueSource({
   slug: "keiluhollin",
   name: "Keiluhöllin",
   baseUrl: "https://www.keiluhollin.is",
-  hoursUrl: "https://www.keiluhollin.is/is/um-okkur",
+  hoursUrl: "https://www.keiluhollin.is/about",
   infoUrl: "https://www.keiluhollin.is/",
   title: "Keiluhöllin Egilshöll",
   subtitle: "Keila, pizza og shake",
-  marker: "opnunartími keila",
+  marker: "keila",
   stopAt: "sportbarinn",
 });
 

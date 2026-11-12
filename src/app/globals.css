@@ -297,19 +297,19 @@ code {
   color: var(--bg);
 }
 
-/* ---------- age filter ---------- */
+/* ---------- filter rows (age, kind of event) ---------- */
 
-.age-filter {
+.filter-group {
   margin-bottom: 18px;
 }
 
-.age-filter-row {
+.filter-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.age-filter-label {
+.filter-row-label {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
@@ -317,15 +317,47 @@ code {
   text-transform: uppercase;
 }
 
-.age-filter .chip {
+.filter-group .chip {
   padding: 5px 12px;
   font-size: 13px;
 }
 
-.age-hint {
+/* two filter rows under each other (events page) */
+.filter-group + .filter-group {
+  margin-top: -8px;
+}
+
+/* "Tónleikar í dag og á morgun. Sjá alla tónleika" under the category circles */
+.category-note {
+  margin: -4px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.category-note a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.filter-hint {
   margin: 8px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* "37 atriði falin. Sýna allt": makes it clear the filter is hiding things */
+.filter-hint strong {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.filter-hint button {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .icon-toggle {
@@ -1563,6 +1595,38 @@ body:has(dialog[open]) {
   white-space: nowrap;
 }
 
+/* "Velja dag": a chip with the browser's date picker inside */
+.date-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.date-pick input {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.date-pick[data-active] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.date-pick[data-active] input {
+  color-scheme: dark; /* light calendar icon on the dark chip */
+}
+
+.more-days {
+  display: flex;
+  margin: 24px auto 0;
+}
+
 .day-group {
   margin-top: 20px;
 }
@@ -2151,18 +2215,19 @@ body:has(dialog[open]) {
     margin-bottom: 14px;
   }
 
-  .feed-column .age-filter {
+  .feed-column .filter-group,
+  .feed-column .category-note {
     padding-inline: 16px;
   }
 
   /* one scrollable row of age buttons instead of wrapping */
-  .age-filter .chips {
+  .filter-group .chips {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
   }
 
-  .age-filter .chip {
+  .filter-group .chip {
     flex: none;
   }
 

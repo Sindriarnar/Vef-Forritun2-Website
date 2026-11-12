@@ -11,19 +11,23 @@ import { AgePill } from "./AgeFilter";
  */
 
 export function MovieShelf({
+  id,
+  title,
   movies,
   layout,
   onOpen,
 }: {
+  id: string;
+  title: string; // "Í bíó í dag", "Í bíó á morgun"
   movies: FeedItem[];
   layout: "rail" | "grid";
   onOpen: (item: FeedItem) => void;
 }) {
   if (movies.length === 0) return null;
   return (
-    <section className="module" aria-labelledby="movies-heading">
+    <section className="module" aria-labelledby={`${id}-heading`}>
       <div className="module-head">
-        <h2 id="movies-heading">Í bíó í dag</h2>
+        <h2 id={`${id}-heading`}>{title}</h2>
         <span>{movies.length} myndir</span>
       </div>
       <div className={layout === "rail" ? "poster-rail" : "poster-grid"}>

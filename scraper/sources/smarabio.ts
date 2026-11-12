@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ScrapedItem, ScrapedOccurrence, Source } from "../types";
+import { movieRating } from "../lib/ages";
 import { absoluteUrl, clean, spacedText } from "../lib/text";
 import { findAddress, parseWeeklyHours, upcomingDates } from "../lib/schedule";
 
@@ -44,6 +45,7 @@ export const smarabio: Source = {
         category: "movie",
         title: page.title ?? movie.title,
         subtitle: movie.subtitle,
+        ...movieRating(movie.subtitle), // "... · Aldurstakmark: 12"
         url,
         imageUrl: movie.imageUrl,
         venue: VENUE,

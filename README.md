@@ -60,8 +60,8 @@ information instead of slogans. All colours are tokens at the top of
 
 | Page | What it shows |
 | --- | --- |
-| `/` Í dag | Deals and events as photo posts, with compact sections in between: activities open today (exhibitions, climbing, bowling, skating, laser tag...), a poster shelf of today's movies, our own ideas, happy hours and pools. Age filter, category circles, search (`/` to focus), "Veldu fyrir mig" (random pick) |
-| `/events` Viðburðir | Upcoming events as a list grouped by day. Age filter, plus day filters: í dag, á morgun, um helgina, næstu 7 daga |
+| `/` Í dag | Deals and events as photo posts, with compact sections in between: activities open today (exhibitions, climbing, bowling, skating, laser tag...), a poster shelf of today's movies, our own ideas, happy hours and pools. Late in the evening, when today is over, the sections show tomorrow instead ("Í bíó á morgun", "Sund á morgun"). Age filter, category circles (Afþreying, Viðburðir, Tónlist, Bíó, Matur & drykkur, Sund, Hugmyndir), search (`/` to focus), "Veldu fyrir mig" (random pick) |
+| `/events` Viðburðir | Every event for the next 60 days, grouped by day; an event is listed on each day it is on. Age filter, kind of event (Allt / Tónlist), day filters (í dag, á morgun, um helgina, næstu 7 daga) and a date picker ("Velja dag"). `/events?tegund=tonlist` opens with only music |
 | `/map` Kort | OpenStreetMap map with every place we have coordinates for (age filter too) |
 | `/plan` Planið | Things you put on your plan, and things you saved (♥) |
 
@@ -72,8 +72,17 @@ Where things are:
 - `src/lib/feed.ts` turns database rows into `FeedItem`s (all text and dates are formatted on the server).
 - `src/lib/feed-types.ts` has the shared types and the age-filter rules (`fitsAgeGroup`).
 - `src/lib/format.ts` has Icelandic dates/prices without `Intl`, so server and browser render exactly the same text.
-- `src/components/` has the UI: `Feed`, `PostCard`, `FeedModules` (movie shelf, place lists), `IdeaCards`, `EventsView`, `PlanView`, `PlacesMap`, `DetailDialog`, `AgeFilter`.
+- `src/components/` has the UI: `Feed`, `PostCard`, `FeedModules` (movie shelf, place lists), `IdeaCards`, `EventsView`, `PlanView`, `PlacesMap`, `DetailDialog`, `AgeFilter`, `FilterRow`.
 - `src/app/globals.css` has all styles, with design tokens (colours, radii) at the top.
+
+### Music (Tónlist)
+
+Concerts are events that are also in the "Tónlist" category: on the front page it is one of
+the category circles (today's and tomorrow's concerts, with a link to all of them), and on the
+events page it is the "Tegund" filter. An event counts as music when the organiser's own tags
+say so ("Tónleikar", "Tónlist", "Rokk og popp", "Klassík", "Jazz og blús", "Kór", "Ópera"...)
+or its name has "tónleikar" in it; the rule is `isMusic` in `src/lib/feed.ts`. Musicals
+("Söngleikur") stay under theatre, and events made for children only count when they are a concert.
 
 ### Age filter (Aldur)
 
@@ -87,14 +96,23 @@ The scraper saves two things per item (`items.min_age`, `items.audience`); the r
 | --- | --- |
 | Alcohol → 20+ | Happy hours; deals and events whose title mentions a drink (bjór, vín, kokteill, mímósa...) |
 | Age limits (18+, 20+) | Event descriptions on tix.is: "18 ára aldurstakmark", "Aldurstakmark er 20 ár"... A limit only for the evening shows doesn't count for the whole event |
-| Movie ratings | kvikmyndir.is: "Öllum leyfð" = family, "Bönnuð innan 12 ára" = 12+ |
+| Movie ratings | kvikmyndir.is ("Öllum leyfð", "Bönnuð innan 12 ára") and Smárabíó ("Aldurstakmark: 12"). Allowed for everyone or from 9 or younger = family film. Bíó Paradís has no ratings, so its films get the rating of the same film on kvikmyndir.is |
 | For children | Library events in the "Börn" category |
 | For families | Pools, activities (laser tag, bowling, skating, climbing, museums), tix.is categories like "Fjölskyldan" or "Barna", "frítt fyrir 12 ára og yngri", and ideas marked `family: true` |
 
-What each group shows: **0–14** = for children or families, or allowed from 14 or younger
-(e.g. a 12+ movie); **Fjölskyldan** = for children or families; **15–19** = everything except
-children-only and 20+ (18+ events are shown, marked "18+"); **20+** = everything except
-children-only. Cards show "20+", "16+", "Börn"... and the details dialog says the age.
+The age groups only take away what isn't allowed or meant for that age, so most things show
+in all of them:
+
+| Group | Shows |
+| --- | --- |
+| 0–14 ára | Everything except alcohol and age limits above 14 (and movies whose rating we don't know) |
+| Fjölskyldan | Only what is made for children or families |
+| 15–19 ára | Everything except children-only events and 20+ (18+ events are shown, marked "18+") |
+| 20+ | Everything except children-only events |
+
+Cards show "20+", "16+", "Börn"... and the details dialog says the age. When a group is
+chosen, the line under the buttons says how many things it hides ("32 atriði falin. Sýna allt"),
+because the choice is remembered and it should be obvious when something is missing because of it.
 
 ### Our own ideas (Hugmyndabankinn)
 
@@ -114,11 +132,12 @@ pools, skating, bowling, climbing,    ─┼─► scraper/ (Node + cheerio) ─
 art museum, happyhour.is, our ideas  ─┘
 ```
 
-- **`db/schema.sql`**: tables (`sources`, `venues`, `items`, `occurrences`, `scrape_runs`) and views (`v_current_items`, `v_today`, `v_upcoming`, `v_open_today`, `v_active_deals`). It runs automatically whenever the database is opened.
+- **`db/schema.sql`**: tables (`sources`, `venues`, `items`, `occurrences`, `scrape_runs`) and views (`v_current_items`, `v_today`, `v_upcoming`, `v_open_soon`, `v_active_deals`). It runs automatically whenever the database is opened.
 - **Only current data is shown**: `v_current_items` keeps an item only if it was seen in its source's latest *successful* scrape, so things removed from a site disappear after the next run, while a failed run hides nothing.
 - **Changed a table in `db/schema.sql`?** `CREATE TABLE IF NOT EXISTS` doesn't alter existing tables, so either delete `data/hvad.db` and run `npm run scrape` again, or add the new column to `ADDED_COLUMNS` in `src/lib/db.ts` so existing databases get it automatically (that's how `min_age`/`audience` were added). Views are re-created automatically.
-- **Opening hours** (pools, happy hours, Smárabíó's entertainment area) are stored as concrete time slots for the next 7 days (`scraper/lib/schedule.ts`), so "what's open now?" is a simple SQL query.
-- **Movies from several sources** are merged on the page by a normalised title (`items.match_key`), so "Iceguys – kvikmyndin" (kvikmyndir.is) and "IceGuys the Movie" (Smárabíó) become one card.
+- **Opening hours** (pools, happy hours, Smárabíó's entertainment area) are stored as concrete time slots for the next 7 days (`scraper/lib/schedule.ts`), so "what's open now?" is a simple SQL query. `v_open_soon` has every slot that is open now, opens later today or opens tomorrow, so the front page still has something to show after closing time.
+- **Movies from several sources** are merged on the page by a normalised title (`items.match_key`, `src/lib/match.ts`), so "Iceguys – kvikmyndin" (kvikmyndir.is) and "IceGuys the Movie" (Smárabíó) become one card, and so do "Fjörður (Fjord)" (Bíó Paradís) and "Fjord".
+- **No limits before filtering**: the events page gets every event in the period (it used to get the first 80, which cut the list off after about ten days), and the front page gets more events than it shows, so each age group still has a full list.
 - **`scraper/sources/`**: one file per website. Each returns a list of items; `scraper/lib/store.ts` upserts them into SQL, so re-running the scraper updates rows instead of duplicating them.
 - **`scraper/lib/http.ts`**: polite fetching. It respects `robots.txt`, identifies itself with `SCRAPER_USER_AGENT` and waits `SCRAPER_DELAY_MS` between requests to the same site.
 - **`src/lib/queries.ts`**: the queries the website runs against the views.
@@ -126,17 +145,17 @@ art museum, happyhour.is, our ideas  ─┘
 
 | Source | What we get |
 | --- | --- |
-| kvikmyndir.is | Today's showtimes in Icelandic cinemas, with links to buy tickets and age ratings |
+| kvikmyndir.is | Today's and tomorrow's showtimes in Icelandic cinemas, with links to buy tickets and age ratings |
 | bioparadis.is | Bíó Paradís program for ~6 days, with subtitle language and series/festival labels |
-| smarabio.is | Smárabíó showtimes for the next 7 days (screen: MAX, Lúxus...), plus **Lasertag** (own opening hours, group size), **Leiktækjasalur** (prices) and **Fótboltaland** (no page of its own on the site, so it gets the entertainment area's hours and is only added while the site mentions it) |
-| tix.is | Concerts, theatre and events, with dates, venues, prices and age limits |
+| smarabio.is | Smárabíó showtimes for the next 7 days (screen: MAX, Lúxus...) with age ratings, plus **Lasertag** (own opening hours, group size), **Leiktækjasalur** (prices) and **Fótboltaland** (no page of its own on the site, so it gets the entertainment area's hours and is only added while the site mentions it) |
+| tix.is | Concerts, theatre and events, with dates, venues, prices and age limits. The front page and the category pages are read (music, theatre, family, sports, courses, Christmas, festivals): about 380 events instead of the ~160 on the front page |
 | hopkaup.is | Restaurant and activity deals, with price, original price and discount % |
 | reykjavik.is | Opening hours of Reykjavík's 8 pools (incl. holiday hours), address, photo, description |
 | happyhour.is | Happy hours: times, weekdays, address and map coordinates |
 | borgarbokasafn.is | City Library events: craft evenings, writing workshops, talks, story hours for children (shown under 0–14) |
 | listasafnreykjavikur.is | Current exhibitions in Hafnarhús, Kjarvalsstaðir and Ásmundarsafn, with each building's opening hours |
 | skautaholl.is | Public skating sessions at Skautahöllin í Laugardal |
-| keiluhollin.is | Bowling hours at Keiluhöllin Egilshöll |
+| keiluhollin.is | Bowling hours at Keiluhöllin Egilshöll (the site currently just says "Opið allan daginn", which is what we show) |
 | klifurhusid.is | Opening hours of Klifurhúsið (climbing/bouldering) |
 | `scraper/content/ideas.ts` | Our own ideas (not scraped) |
 

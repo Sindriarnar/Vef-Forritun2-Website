@@ -25,6 +25,13 @@ const PATHS = {
       <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3Z" />
     </>
   ),
+  music: (
+    <>
+      <path d="M9 18V5l11-2v13" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="17.5" cy="16" r="2.5" />
+    </>
+  ),
   plus: <path d="M12 5v14M5 12h14" />,
   chevron: <path d="m9 6 6 6-6 6" />,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,

@@ -91,7 +91,7 @@ export function PlacesMap({ places: allPlaces }: { places: MapPlace[] }) {
 
   return (
     <>
-      <AgeFilter />
+      <AgeFilter hidden={allPlaces.length - places.length} />
       <div className="map-workspace">
         <div className="map-sidebar">
           <div className="map-sidebar-heading">

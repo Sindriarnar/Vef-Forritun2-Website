@@ -10,7 +10,8 @@ import type { Audience, Category, ScrapedItem } from "../types";
  *    null = no known limit.
  *  - audience: "born" = made for children (hidden for 15–19 and 20+),
  *    "fjolskylda" = good for the whole family (shown for every age),
- *    null = for teens and adults.
+ *    null = nothing special known (shown for every age that minAge allows,
+ *    but not under "Fjölskyldan").
  *
  * Sources set these when they know (movie ratings, "18 ára aldurstakmark"
  * in an event description, family tags...); otherwise the category
@@ -123,12 +124,18 @@ export function ageInfo(clues: { limit?: number | null; alcohol?: boolean; famil
   return { minAge, audience: clues.kidsOnly ? "born" : clues.family ? "fjolskylda" : null };
 }
 
-/** Icelandic movie ratings: "Öllum leyfð" (everyone), "Bönnuð innan 12 ára"... */
+/**
+ * Icelandic movie ratings, as the cinema sites write them:
+ *   kvikmyndir.is: "Öllum leyfð" (everyone), "Bönnuð innan 12 ára"
+ *   Smárabíó:      "2026 · 105 mín · Aldurstakmark: Leyfð", "... Aldurstakmark: 12"
+ * Films allowed from 9 or younger count as family films.
+ * No rating in the text = unknown, and nothing is returned.
+ */
 export function movieRating(rating: string | null | undefined): Partial<AgeInfo> {
   if (!rating) return {};
-  if (/öllum\s+leyfð/iu.test(rating)) return { minAge: null, audience: "fjolskylda" };
-  const limit = ageLimitIn(rating);
-  return limit ? { minAge: limit, audience: null } : {};
+  if (/öllum\s+leyfð|aldurstakmark:?\s*leyfð/iu.test(rating)) return { minAge: null, audience: "fjolskylda" };
+  const limit = Number(rating.match(/aldurstakmark:?\s*(\d{1,2})(?!\d)/iu)?.[1]) || ageLimitIn(rating);
+  return limit ? { minAge: limit, audience: limit <= 9 ? "fjolskylda" : null } : {};
 }
 
 /** Used when a source doesn't say anything about ages. */

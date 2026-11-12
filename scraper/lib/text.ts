@@ -51,24 +51,9 @@ export function icelandTimeToIso(local: string | undefined | null): string | nul
   return `${m[1]}T${m[2]}:${m[3]}:${m[4] ?? "00"}Z`;
 }
 
-/**
- * A key for recognising the same movie across sites:
- *   "Iceguys – kvikmyndin" / "IceGuys the Movie" / "Iceguys: The Movie" -> "iceguys"
- *   "Shrek 5 (ÍSL.TAL)" -> "shrek 5 isl tal"  (dubbed stays separate from the original)
- */
-export function matchKey(title: string): string {
-  return clean(title)
-    .toLowerCase()
-    .replace(/ð/g, "d")
-    .replace(/þ/g, "th")
-    .replace(/æ/g, "ae")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // strip accents: á -> a, ö -> o
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\b(the movie|kvikmyndin|myndin)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+// The key that recognises the same movie across sites lives in
+// src/lib/match.ts, because the website uses it too.
+export { matchKey } from "../../src/lib/match";
 
 /** Normalise any ISO date string to the "YYYY-MM-DDTHH:MM:SSZ" format. */
 export function normaliseIso(value: string | undefined | null): string | null {

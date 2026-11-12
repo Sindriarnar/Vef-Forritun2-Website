@@ -96,7 +96,7 @@ export function DetailDialog({ item, onClose }: { item: FeedItem | null; onClose
 
             {item.showtimes && item.showtimes.length > 0 && (
               <div className="showtimes">
-                <h3>Sýningar í dag</h3>
+                <h3>Sýningar {item.dayLabel ?? "í dag"}</h3>
                 <ul>
                   {item.showtimes.map((s) => (
                     <li key={`${s.time}-${s.venue}-${s.note}`}>

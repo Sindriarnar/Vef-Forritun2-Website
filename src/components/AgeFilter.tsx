@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AGE_GROUPS, ageBadge, ageText, type AgeGroup, type Audience } from "@/lib/feed-types";
+import { FilterRow } from "./FilterRow";
 
 /**
  * The age filter ("Aldur"): Allir, 0–14 ára, Fjölskyldan, 15–19 ára or
@@ -50,36 +51,46 @@ export function useAgeGroup() {
   return value;
 }
 
-/** The row of age buttons, with a line explaining the chosen group. */
-export function AgeFilter() {
+/**
+ * The row of age buttons, with a line explaining the chosen group and
+ * how many things it hides on this page (`hidden`), so it is clear when
+ * something is missing because of the filter.
+ */
+export function AgeFilter({ hidden = 0 }: { hidden?: number }) {
   const { age, setAge } = useAgeGroup();
   const chosen = AGE_GROUPS.find((g) => g.id === age);
   return (
-    <div className="age-filter">
-      <div className="age-filter-row" role="group" aria-label="Aldur">
-        <span className="age-filter-label" aria-hidden="true">
-          Aldur
-        </span>
-        <div className="chips">
-          <button type="button" className="chip" aria-pressed={age === "all"} onClick={() => setAge("all")}>
-            Allir
+    <div className="filter-group">
+      <FilterRow label="Aldur">
+        <button type="button" className="chip" aria-pressed={age === "all"} onClick={() => setAge("all")}>
+          Allir
+        </button>
+        {AGE_GROUPS.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            className="chip"
+            aria-pressed={age === group.id}
+            onClick={() => setAge(age === group.id ? "all" : group.id)}
+          >
+            {group.label}
           </button>
-          {AGE_GROUPS.map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              className="chip"
-              aria-pressed={age === group.id}
-              onClick={() => setAge(age === group.id ? "all" : group.id)}
-            >
-              {group.label}
-            </button>
-          ))}
-        </div>
-      </div>
+        ))}
+      </FilterRow>
       {chosen && (
-        <p className="age-hint" role="status">
+        <p className="filter-hint" role="status">
           {chosen.hint}
+          {hidden > 0 && (
+            <>
+              {" "}
+              <strong>
+                {hidden} {hidden % 10 === 1 && hidden % 100 !== 11 ? "atriði falið" : "atriði falin"}.
+              </strong>{" "}
+              <button type="button" onClick={() => setAge("all")}>
+                Sýna allt
+              </button>
+            </>
+          )}
         </p>
       )}
     </div>
@@ -91,6 +102,7 @@ export function AgeFilter() {
  * age limit. 20+ (alcohol / 20 ára aldurstakmark) is drawn darker.
  */
 export function AgePill({ item }: { item: { minAge?: number | null; audience?: Audience | null } }) {
+  // (an item's `kind` isn't needed here: the badge only shows known limits)
   const label = ageBadge(item);
   if (!label) return null;
   return (

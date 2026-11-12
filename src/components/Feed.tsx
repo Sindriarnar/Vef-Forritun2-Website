@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CATEGORIES, fitsAgeGroup, type FeedCategory, type FeedItem } from "@/lib/feed-types";
+import { CATEGORIES, fitsAgeGroup, inCategory, type FeedCategory, type FeedItem } from "@/lib/feed-types";
 import { AgeFilter, useAgeGroup } from "./AgeFilter";
 import { DetailDialog } from "./DetailDialog";
 import { MovieShelf, PlaceList, PlaceRow } from "./FeedModules";
@@ -17,6 +17,13 @@ interface FeedProps {
   updatedLabel: string; // "í dag kl. 13:47"
   sources: string[];
 }
+
+/** How many events are shown as big posts (more are sent, so every age group gets its share). */
+const MAX_EVENT_POSTS = 24;
+
+/** "í dag", or "á morgun" when everything in the list opens tomorrow (late in the evening). */
+const whenOpen = (places: FeedItem[]) =>
+  places.length > 0 && places.every((p) => p.dayLabel === "á morgun") ? "á morgun" : "í dag";
 
 /** The front page: what's on today, as a feed with compact sections mixed in. */
 export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
@@ -34,7 +41,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
     const q = normalise(query);
     return forAge.filter(
       (item) =>
-        (category === "all" || item.category === category) &&
+        (category === "all" || inCategory(item, category)) &&
         (!q || normalise(`${item.title} ${item.place} ${item.subtitle ?? ""} ${item.categoryLabel}`).includes(q)),
     );
   }, [forAge, category, query]);
@@ -68,8 +75,16 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const posts = visible.filter((i) => i.kind === "deal" || i.kind === "event");
+  const posts: FeedItem[] = [];
+  let eventPosts = 0;
+  for (const item of visible) {
+    if (item.kind === "deal") posts.push(item);
+    // A search looks through every event; otherwise only the next few are shown.
+    else if (item.kind === "event" && (query !== "" || eventPosts++ < MAX_EVENT_POSTS)) posts.push(item);
+  }
   const movies = visible.filter((i) => i.kind === "movie");
+  // One shelf per day: today, plus tomorrow when few or no showings are left today.
+  const movieDays = [...new Set(movies.map((m) => m.dayKey))].map((day) => movies.filter((m) => m.dayKey === day));
   const happyHours = visible.filter((i) => i.kind === "happy_hour");
   const activities = visible.filter((i) => i.kind === "activity");
   const pools = visible.filter((i) => i.kind === "pool");
@@ -84,11 +99,23 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
 
   // Big posts with the compact sections slotted in between them.
   const modules: { after: number; node: ReactNode }[] = [
-    { after: 0, node: <PlaceList key="activities" id="activities" title="Afþreying í dag" places={activities} onOpen={setOpen} /> },
-    { after: 2, node: <MovieShelf key="movies" movies={movies} layout={posts.length ? "rail" : "grid"} onOpen={setOpen} /> },
+    { after: 0, node: <PlaceList key="activities" id="activities" title={`Afþreying ${whenOpen(activities)}`} places={activities} onOpen={setOpen} /> },
+    ...movieDays.map((day) => ({
+      after: 2,
+      node: (
+        <MovieShelf
+          key={`movies-${day[0].dayKey}`}
+          id={`movies-${day[0].dayKey}`}
+          title={`Í bíó ${day[0].dayLabel ?? "í dag"}`}
+          movies={day}
+          layout={posts.length ? "rail" : "grid"}
+          onOpen={setOpen}
+        />
+      ),
+    })),
     { after: 4, node: <IdeaCards key="ideas" ideas={ideas} limit={onlyIdeas ? undefined : 4} onOpen={setOpen} /> },
-    { after: 6, node: <PlaceList key="happy" id="happy" title="Happy hour í dag" places={happyHours} onOpen={setOpen} /> },
-    { after: 8, node: <PlaceList key="pools" id="pools" title="Sund í dag" places={pools} onOpen={setOpen} /> },
+    { after: 6, node: <PlaceList key="happy" id="happy" title={`Happy hour ${whenOpen(happyHours)}`} places={happyHours} onOpen={setOpen} /> },
+    { after: 8, node: <PlaceList key="pools" id="pools" title={`Sund ${whenOpen(pools)}`} places={pools} onOpen={setOpen} /> },
   ];
   const content: ReactNode[] = [];
   posts.forEach((post, i) => {
@@ -120,7 +147,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
           </label>
         </div>
 
-        <AgeFilter />
+        <AgeFilter hidden={items.length - forAge.length} />
 
         <div className="stories" role="group" aria-label="Flokkar">
           <button type="button" className="story" aria-pressed={category === "all"} onClick={() => setCategory("all")}>
@@ -130,7 +157,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
             Allt
           </button>
           {CATEGORIES.map((c) => {
-            const image = forAge.find((i) => i.category === c.id && i.imageUrl)?.imageUrl;
+            const image = forAge.find((i) => inCategory(i, c.id) && i.imageUrl)?.imageUrl;
             return (
               <button
                 key={c.id}
@@ -144,7 +171,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={image} alt="" />
                   ) : (
-                    <Icon name={c.id === "hugmyndir" ? "bulb" : "grid"} />
+                    <Icon name={c.id === "hugmyndir" ? "bulb" : c.id === "tonlist" ? "music" : "grid"} />
                   )}
                 </span>
                 {c.label}
@@ -152,6 +179,12 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
             );
           })}
         </div>
+
+        {category === "tonlist" && (
+          <p className="category-note">
+            Tónleikar og önnur tónlist í dag og á morgun. <Link href="/events?tegund=tonlist">Sjá alla tónleika</Link>
+          </p>
+        )}
 
         {visible.length > 0 ? (
           <div className="feed">{content}</div>

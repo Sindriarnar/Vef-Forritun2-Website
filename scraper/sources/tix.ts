@@ -12,7 +12,8 @@ import { absoluteUrl, clean, normaliseIso } from "../lib/text";
  * start times, venue, price range, categories) in the React Server
  * Components payload (`self.__next_f.push(...)` scripts). We read the
  * `boxOfficeData` objects from that payload, and take the nice event URL
- * and poster image from the HTML cards.
+ * and poster image from the HTML cards. The front page and the category
+ * pages are all read (see PAGES).
  *
  * Age limits ("18 ára aldurstakmark", "Aldurstakmark er 20 ár") are only
  * written in the event descriptions, which sit next to boxOfficeData in
@@ -45,10 +46,64 @@ export const tix: Source = {
   baseUrl: BASE,
 
   async scrape(http) {
-    const html = await http.getText(`${BASE}/`);
-    return parseTixPage(html, new Date());
+    const now = new Date();
+    const items = new Map<string, ScrapedItem>();
+
+    for (const path of PAGES) {
+      let html: string;
+      try {
+        html = await http.getText(BASE + path);
+      } catch (error) {
+        // The front page must work; a category page that is gone (e.g.
+        // /category/jol after Christmas) only means fewer extra events.
+        if (path === "/") throw error;
+        console.warn(`  tix.is: skipped ${path} (${error instanceof Error ? error.message : error})`);
+        continue;
+      }
+      for (const item of parseTixPage(html, now)) {
+        const seen = items.get(item.externalId);
+        items.set(item.externalId, seen ? mergeItems(seen, item) : item);
+      }
+    }
+
+    return [...items.values()];
   },
 };
+
+/**
+ * The front page only shows a selection of what is on sale (~160
+ * events). The category pages list the rest (~380 in total); the "by
+ * venue" pages are the fullest. Every page is the same kind of Next.js
+ * page, read one at a time with the usual pause in between.
+ */
+const PAGES = [
+  "/",
+  "/category/music/by-venue",
+  "/category/theater/by-theater",
+  "/category/music",
+  "/category/theater",
+  "/category/family",
+  "/category/jol",
+  "/category/sports",
+  "/category/courses",
+  "/category/festival",
+];
+
+/**
+ * The same event found on two pages. Pages don't all carry the same
+ * details (poster, description with the age limit), so keep the first
+ * and fill in what it is missing; the strictest age limit wins.
+ */
+function mergeItems(first: ScrapedItem, other: ScrapedItem): ScrapedItem {
+  const minAge = Math.max(first.minAge ?? 0, other.minAge ?? 0) || null;
+  return {
+    ...first,
+    imageUrl: first.imageUrl ?? other.imageUrl,
+    tags: [...new Set([...(first.tags ?? []), ...(other.tags ?? [])])],
+    minAge,
+    audience: minAge !== null && minAge >= 12 ? null : (first.audience ?? other.audience ?? null),
+  };
+}
 
 export function parseTixPage(html: string, now: Date): ScrapedItem[] {
   const cards = readCards(html);

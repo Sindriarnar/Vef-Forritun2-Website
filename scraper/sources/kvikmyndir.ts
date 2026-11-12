@@ -4,9 +4,10 @@ import { movieRating } from "../lib/ages";
 import { absoluteUrl, clean, icelandTimeToIso } from "../lib/text";
 
 /**
- * Kvikmyndir.is — today's showtimes in (almost) every Icelandic cinema.
+ * Kvikmyndir.is — showtimes in (almost) every Icelandic cinema, today
+ * and tomorrow, with each movie's age rating.
  *
- * Page: https://kvikmyndir.is/bio/syningatimar/
+ * Page: https://kvikmyndir.is/bio/syningatimar/  (?dagur=1 is tomorrow)
  * Each movie is a `.section.group.box` block; every showtime is an
  * `a.st-showtime-link` with machine-readable data-* attributes:
  *   data-showtime="2026-11-09 14:20:00"  data-cinema="Sambíóin Kringlunni"
@@ -15,14 +16,29 @@ import { absoluteUrl, clean, icelandTimeToIso } from "../lib/text";
 const BASE = "https://kvikmyndir.is";
 const SHOWTIMES_URL = `${BASE}/bio/syningatimar/`;
 
+/**
+ * Days of showtimes to read, one request each (0 = today). Tomorrow is
+ * included so the website has something to show late in the evening,
+ * when today's last showing has started.
+ */
+const DAYS = [0, 1];
+
 export const kvikmyndir: Source = {
   slug: "kvikmyndir",
   name: "Kvikmyndir.is",
   baseUrl: BASE,
 
   async scrape(http) {
-    const html = await http.getText(SHOWTIMES_URL);
-    return parseShowtimes(html);
+    const movies = new Map<string, ScrapedItem>();
+    for (const day of DAYS) {
+      const html = await http.getText(day === 0 ? SHOWTIMES_URL : `${SHOWTIMES_URL}?dagur=${day}`);
+      for (const movie of parseShowtimes(html)) {
+        const seen = movies.get(movie.externalId);
+        if (seen) seen.occurrences!.push(...movie.occurrences!);
+        else movies.set(movie.externalId, movie);
+      }
+    }
+    return [...movies.values()];
   },
 };
 

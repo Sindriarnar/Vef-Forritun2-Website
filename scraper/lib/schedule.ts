@@ -72,14 +72,19 @@ const DAY_HOURS = new RegExp(
   "([a-záðéíóúýþæö]{3})[a-záðéíóúýþæö.]*" + // day: "mán", "mánudaga", "fim."
     "\\s*(?:[-–]\\s*([a-záðéíóúýþæö]{3})[a-záðéíóúýþæö.]*)?" + // optional "- fimmtudaga"
     "\\s*[:|]?\\s*" +
-    "((?:(?:kl\\.?\\s*)?\\d{1,2}[:.]\\d{2}\\s*(?:til|[-–])\\s*\\d{1,2}[:.]\\d{2}\\s*(?:og\\s*|\\|\\s*)?)+)", // one or more time ranges
+    "((?:(?:kl\\.?\\s*)?\\d{1,2}[:.]\\d{2}\\s*(?:til|[-–])\\s*\\d{1,2}[:.]\\d{2}\\s*(?:og\\s*|\\|\\s*)?)+" + // one or more time ranges
+    "|opið allan (?:daginn|sólarhringinn))", // or "open all day"
   "gi",
 );
+
+/** "Opið allan daginn": stored as one slot from midnight to midnight. */
+export const ALL_DAY: TimeRange = { start: "00:00", end: "00:00" };
 
 /**
  * Weekly opening hours written as text, e.g.
  *   "Opnunartími Keila Mánudaga - fimmtudaga kl.16:00 - 22:00 Föstudaga kl.16:00 - 00:00 ..."
  *   "Fimmtudagur 12:30-14:30 17:00-19:00"
+ *   "Keila Mán - Sun Opið allan daginn"
  * -> occurrences for the coming days.
  *
  * Only the text after `marker` is read (the first occurrence that is
@@ -109,7 +114,7 @@ export function parseWeeklyHours(
     const from = parseWeekday(m[1])!;
     const to = m[2] ? parseWeekday(m[2]) : from;
     if (to === null) continue;
-    const ranges = parseTimeRanges(m[3]);
+    const ranges = m[3].startsWith("opið allan") ? [ALL_DAY] : parseTimeRanges(m[3]);
     // Walk from `from` to `to` (Mon-Thu = 1,2,3,4; wraps past Sunday if needed).
     for (let d = from, i = 0; i < 7; d = (d + 1) % 7, i++) {
       if (!byDay.has(d)) byDay.set(d, ranges); // first mention wins (pages often repeat the table)
