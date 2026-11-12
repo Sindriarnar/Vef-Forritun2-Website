@@ -1,0 +1,136 @@
+.frontpage {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border-inline: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.heading {
+  padding: 28px 20px 24px;
+}
+
+.heading h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+}
+
+.heading p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button {
+  flex: 1;
+  padding: 15px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.tabs button:hover {
+  background: var(--bg-2);
+}
+
+.tabs button:focus-visible,
+.frontpage section:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.post {
+  border-bottom: 1px solid var(--line);
+}
+
+.postHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-2);
+}
+
+.postHeader strong {
+  font-size: 14px;
+}
+
+.postHeader p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.imagePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  aspect-ratio: 16 / 10;
+  background: var(--bg-2);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.imagePlaceholder svg {
+  width: 48px;
+  height: 48px;
+}
+
+.postBody {
+  padding: 20px;
+}
+
+.postBody h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.postBody p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.postBody .metadata {
+  margin-top: 18px;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .frontpage {
+    border-inline: 0;
+  }
+
+  .heading h1 {
+    font-size: 22px;
+  }
+}
