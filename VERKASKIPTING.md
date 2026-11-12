@@ -36,15 +36,16 @@ source) and `npm run typecheck`.
 
 Owns:
 
-- `src/app/page.tsx`: the route; loads data with `getFeed()` and renders `Frontpage`
+- `src/app/page.tsx`: the route; loads data with `getFeed()` and renders `Feed`
 - `src/components/home/`:
-  - `Frontpage.tsx` + `Frontpage.module.css`: the new front page being built
   - `PostCard.tsx`: the big photo post (also used for the random pick)
-  - `Feed.tsx`, `FeedModules.tsx`, `IdeaCards.tsx`: the **old** front page.
-    It isn't shown anywhere any more, but has parts worth reusing (movie
-    shelf, place lists, idea cards, search, category circles). Delete what
-    you don't use when you're done.
+  - `Feed.tsx`, `FeedModules.tsx`, `IdeaCards.tsx`: the current data-backed front page
+    (movie shelf, place lists, idea cards, search, category circles).
 - `src/styles/home.css`: styles for the parts above
+
+The independent, frontend-only skeleton (`Frontpage.tsx` + `Frontpage.module.css`)
+is on `3-búa-til-forsíðu-skeleton`. That branch does not include the database or
+scraper implementation from `nextjs-og-scraper`.
 
 ## 3. Undirsíður (sub pages)
 
