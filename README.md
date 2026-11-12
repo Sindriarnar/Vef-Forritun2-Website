@@ -2,6 +2,7 @@
 Hvað á að gera í dag? Vefsíða
 # Hvað á að gera.is
 
+
 Mobile-first frumgerð af síðu sem safnar saman tilboðum, viðburðum og afþreyingu. Markmiðið er að finna eitthvað að gera og fara þaðan áfram á upplýsingasíðu eða bókun hjá seljanda.
 
 Opnaðu `homepage.html` beint í vafra. CSS, JavaScript og ljósmyndir eru innfelld í skránni; engin uppsetning eða nettenging þarf.
