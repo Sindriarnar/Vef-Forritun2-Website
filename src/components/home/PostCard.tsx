@@ -1,8 +1,9 @@
 "use client";
 
 import { ageBadge, type FeedItem } from "@/lib/feed-types";
-import { Icon } from "./Icon";
-import { useSaved } from "./SavedProvider";
+import { Icon } from "@/components/shared/Icon";
+import { Price } from "@/components/shared/Price";
+import { useSaved } from "@/components/shared/SavedProvider";
 
 /** A big feed post (deals and events): photo, caption below it, actions. */
 export function PostCard({ item, onOpen }: { item: FeedItem; onOpen: (item: FeedItem) => void }) {
@@ -61,16 +62,6 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen: (item: Feed
 
       <PostActions item={item} />
     </article>
-  );
-}
-
-export function Price({ item }: { item: FeedItem }) {
-  return (
-    <span className="price">
-      {item.priceNote === "frá" && <small>frá </small>}
-      <strong>{item.priceLabel}</strong>
-      {item.originalPriceLabel && <del>{item.originalPriceLabel}</del>}
-    </span>
   );
 }
 

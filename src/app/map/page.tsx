@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PlacesMap } from "@/components/PlacesMap";
-import { getMapPlaces } from "@/lib/queries";
+import { PlacesMap } from "@/components/subpages/PlacesMap";
+import { getMapPlaces } from "@/lib/map";
 
 export const metadata: Metadata = { title: "Kort · Hvað á að gera?" };
 
@@ -10,7 +10,7 @@ export default function MapPage() {
     <div className="page-shell secondary-page">
       <div className="page-head">
         <h1>Kort</h1>
-        <p>Staðir sem við vitum staðsetninguna á. Fleiri bætast við eftir því sem heimildum fjölgar.</p>
+        <p>Viðburðir, sundlaugar, veitingastaðir og afþreying um allt land.</p>
       </div>
       <Suspense fallback={<p className="loading">Sæki kort…</p>}>
         <MapData />
@@ -22,7 +22,7 @@ export default function MapPage() {
 async function MapData() {
   const places = await getMapPlaces();
   if (places.length === 0) {
-    return <p className="hint">Engir staðir með staðsetningu enn. Keyrðu npm run scrape.</p>;
+    return <p className="hint">Engir staðir enn. Keyrðu npm run scrape.</p>;
   }
   return <PlacesMap places={places} />;
 }

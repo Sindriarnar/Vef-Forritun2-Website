@@ -1,7 +1,7 @@
 import "./env";
 import { getDb } from "../src/lib/db";
 import { PoliteHttp } from "./lib/http";
-import { ensureSource, finishRun, saveItems, startRun } from "./lib/store";
+import { ensureSource, finishRun, loadPrevious, saveItems, startRun } from "./lib/store";
 import { sources } from "./sources";
 
 /**
@@ -32,7 +32,7 @@ async function main() {
     process.stdout.write(`→ ${source.name} ... `);
 
     try {
-      const items = await source.scrape(http);
+      const items = await source.scrape(http, loadPrevious(db, sourceId));
       saveItems(db, sourceId, items);
       finishRun(db, runId, { status: "ok", itemsFound: items.length });
       const showtimes = items.reduce((n, i) => n + (i.occurrences?.length ?? 0), 0);

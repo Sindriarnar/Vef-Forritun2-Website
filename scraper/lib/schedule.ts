@@ -127,6 +127,72 @@ export function parseWeeklyHours(
   );
 }
 
+/**
+ * A day label from an opening-hours table -> weekdays (0 = Sunday), or
+ * null if the text isn't about days:
+ *   "Virka daga" -> Mon-Fri · "Helgar" -> Sat, Sun · "Alla daga" -> all
+ *   "Mán - mið", "Mánudaga – Föstudaga", "Lau-sun", "Þri til lau" -> a range
+ *   "Laugardaga og sunnudaga" -> both · "Sunnudaga", "Sun" -> one day
+ */
+export function parseDayLabel(label: string): number[] | null {
+  const text = label.toLowerCase().replace(/\./g, "").trim();
+  if (/^alla daga/.test(text)) return [0, 1, 2, 3, 4, 5, 6];
+  if (/^virk(a|ir) dag/.test(text)) return [1, 2, 3, 4, 5];
+  if (/^(um )?helgar/.test(text)) return [6, 0];
+
+  const both = text.split(/\s+og\s+/);
+  if (both.length === 2) {
+    const days = both.map(parseWeekday);
+    return days.every((d) => d !== null) ? (days as number[]) : null;
+  }
+
+  const [first, last, extra] = text.split(/\s*(?:-|–|—|\btil\b)\s*/);
+  if (extra !== undefined) return null;
+  const from = parseWeekday(first);
+  if (from === null) return null;
+  if (last === undefined) return [from];
+  const to = parseWeekday(last);
+  if (to === null) return null;
+  const days: number[] = [];
+  for (let d = from, i = 0; i < 7; d = (d + 1) % 7, i++) {
+    days.push(d);
+    if (d === to) break;
+  }
+  return days;
+}
+
+/**
+ * Opening hours the way shopping centres write them, often without
+ * minutes: "11-19", "11-20:30", "14:30-24", "10:00 – 18:30".
+ * "Lokað" -> "closed". Anything else -> null.
+ */
+export function parseOpenHours(text: string): TimeRange | "closed" | null {
+  if (/^lokað/i.test(text.trim())) return "closed";
+  const m = text.trim().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(?:-|–|—|til)\s*(\d{1,2})(?:[:.](\d{2}))?$/);
+  if (!m) return null;
+  const time = (hours: string, minutes?: string) => `${String(Number(hours) % 24).padStart(2, "0")}:${minutes ?? "00"}`;
+  return { start: time(m[1], m[2]), end: time(m[3], m[4]) }; // "24" becomes 00:00, i.e. midnight
+}
+
+/**
+ * Rows of an opening-hours table, [day label, hours], -> occurrences
+ * for the coming days. Rows that aren't a day and a time ("Opið fyrsta
+ * sunnudag í mánuði") are skipped; the first row about a day wins.
+ */
+export function hoursTableToOccurrences(rows: [string, string][], now: Date, venue: string): ScrapedOccurrence[] {
+  const byDay = new Map<number, TimeRange | "closed">();
+  for (const [label, hours] of rows) {
+    const days = parseDayLabel(label);
+    const range = parseOpenHours(hours);
+    if (!days || !range) continue;
+    for (const day of days) if (!byDay.has(day)) byDay.set(day, range);
+  }
+  return upcomingDates(now).flatMap((date) => {
+    const range = byDay.get(weekday(date));
+    return range && range !== "closed" ? rangesToOccurrences(date, [range], { venue }) : [];
+  });
+}
+
 /** "Hagasmára 1, 201 Kópavogi" / "Múlavegur 1, 104 Reykjavík" from free text. */
 export function findAddress(text: string): string | null {
   return text.match(/[A-ZÁÐÉÍÓÚÝÞÆÖ][a-záðéíóúýþæö]+ \d+[a-z]?, \d{3} [A-ZÁÐÉÍÓÚÝÞÆÖ][a-záðéíóúýþæö]+/)?.[0] ?? null;

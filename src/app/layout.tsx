@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import { Schibsted_Grotesk } from "next/font/google";
 import Link from "next/link";
-import { AgeProvider } from "@/components/AgeFilter";
-import { LogoMark } from "@/components/Logo";
-import { SavedProvider } from "@/components/SavedProvider";
-import { SiteHeader } from "@/components/SiteHeader";
-import "./globals.css";
+import { AgeProvider } from "@/components/shared/AgeFilter";
+import { LogoMark } from "@/components/shared/Logo";
+import { SavedProvider } from "@/components/shared/SavedProvider";
+import { SiteHeader } from "@/components/shared/SiteHeader";
+// Styles, one file per area (see VERKASKIPTING.md). Shared first, so the
+// page files can build on it; the order is the same as the old globals.css.
+import "@/styles/shared.css";
+import "@/styles/home.css";
+import "@/styles/events.css";
+import "@/styles/plan.css";
+import "@/styles/map.css";
 
 // Self-hosted by Next.js at build time: no requests to Google from visitors.
 const font = Schibsted_Grotesk({

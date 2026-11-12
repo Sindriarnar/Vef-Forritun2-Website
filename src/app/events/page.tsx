@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { EventsView } from "@/components/EventsView";
+import { EventsView } from "@/components/subpages/EventsView";
 import { getEventItems } from "@/lib/feed";
 
 export const metadata: Metadata = { title: "Viðburðir · Hvað á að gera?" };

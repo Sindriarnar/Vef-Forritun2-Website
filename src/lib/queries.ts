@@ -103,19 +103,24 @@ export interface IdeaRow extends AgeColumns {
   tags: string | null;
 }
 
-export interface MapPlace extends AgeColumns {
+/** One thing at one place, for the map (src/lib/map.ts groups them by place). */
+export interface MapRow extends AgeColumns {
+  venue_id: number;
+  venue_name: string;
+  address: string | null;
+  lat: number | null; // null: we don't know where the place is (only pools are listed then)
+  lng: number | null;
   item_id: number;
   category: string;
   title: string;
+  subtitle: string | null;
   url: string;
   image_url: string | null;
-  venue_name: string;
-  address: string | null;
-  lat: number;
-  lng: number;
+  tags: string | null;
+  next_start: string | null; // events and movies: the next date at this place
 }
 
-export async function getActiveDeals(limit = 40): Promise<DealRow[]> {
+export async function getActiveDeals(limit = 80): Promise<DealRow[]> {
   await connection();
   return getDb()
     .prepare(
@@ -338,19 +343,43 @@ export async function getIdeas(): Promise<IdeaRow[]> {
     .all() as IdeaRow[];
 }
 
-/** Everything current that has coordinates, for the map. */
-export async function getMapPlaces(): Promise<MapPlace[]> {
+/**
+ * Everything current that can be shown on the map, one row per thing
+ * per place:
+ *  - events and movies: at each venue where they have an upcoming date
+ *    (an event on tour is at several places)
+ *  - pools, happy hours, activities, deals: at their own venue
+ * Only places with coordinates, except pools, which are listed even
+ * when we don't know where they are.
+ */
+export async function getMapRows(): Promise<MapRow[]> {
   await connection();
   return getDb()
     .prepare(
-      `SELECT i.id AS item_id, i.category, i.title, i.url, i.image_url, i.min_age, i.audience,
-              v.name AS venue_name, v.address, v.lat, v.lng
+      `SELECT v.id AS venue_id, v.name AS venue_name, v.address, v.lat, v.lng,
+              i.id AS item_id, i.category, i.title, i.subtitle, i.url, i.image_url, i.tags,
+              i.min_age, i.audience, MIN(o.starts_at) AS next_start
+         FROM occurrences o
+         JOIN v_current_items i ON i.id = o.item_id
+         JOIN venues v ON v.id = COALESCE(o.venue_id, i.venue_id)
+        WHERE i.category IN ('event', 'movie')
+          AND o.starts_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+          AND v.lat IS NOT NULL AND v.lng IS NOT NULL
+        GROUP BY v.id, i.id
+
+       UNION ALL
+
+       SELECT v.id, v.name, v.address, v.lat, v.lng,
+              i.id, i.category, i.title, i.subtitle, i.url, i.image_url, i.tags,
+              i.min_age, i.audience, NULL
          FROM v_current_items i
          JOIN venues v ON v.id = i.venue_id
-        WHERE v.lat IS NOT NULL AND v.lng IS NOT NULL
-        ORDER BY v.name`,
+        WHERE i.category NOT IN ('event', 'movie', 'idea')
+          AND ((v.lat IS NOT NULL AND v.lng IS NOT NULL) OR i.category = 'pool')
+
+        ORDER BY next_start, title`,
     )
-    .all() as MapPlace[];
+    .all() as MapRow[];
 }
 
 /** When the scraper last finished successfully (ISO string), or null. */

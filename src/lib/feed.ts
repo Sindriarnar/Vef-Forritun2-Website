@@ -182,15 +182,20 @@ export function placeToItem(place: OpenPlace): FeedItem {
           : `Opnar kl. ${from}`;
   const price = formatPrice(place.price_isk);
 
-  const exhibition = place.tags?.split(",").includes("Sýning");
+  // Activities are told apart by a tag from the scraper: exhibitions,
+  // shopping centres, and restaurants (which go under "Matur & drykkur").
+  const tags = place.tags?.split(",") ?? [];
+  const restaurant = tags.includes("Veitingastaður");
+  const label = tags.includes("Sýning") ? "Sýning" : tags.includes("Verslun") ? "Verslun" : kind.label;
 
   return {
     id: `${place.category}-${place.item_id}`,
-    kind: place.category,
-    category: kind.category,
-    categoryLabel: exhibition ? "Sýning" : kind.label,
+    kind: restaurant ? "restaurant" : place.category,
+    category: restaurant ? "matur" : kind.category,
+    categoryLabel: restaurant ? "Veitingastaður" : label,
     place: happyHour ? place.title : (place.provider ?? place.source_name),
-    placeDetail: place.address,
+    // A restaurant's line says where it is ("Garðurinn mathöll í Smáralind"), not the street.
+    placeDetail: restaurant ? (place.subtitle ?? place.address) : place.address,
     title: place.title,
     subtitle: happyHour ? `Happy hour ${from}–${until}` : place.subtitle,
     description: place.description,

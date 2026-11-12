@@ -92,7 +92,7 @@ export interface Showtime {
 /** One post in the feed: a deal, a movie, an event, a pool... */
 export interface FeedItem {
   id: string; // stable across scrapes, e.g. "deal-hopkaup-16191", "movie-iceguys"
-  kind: "deal" | "movie" | "event" | "happy_hour" | "pool" | "activity" | "idea";
+  kind: "deal" | "movie" | "event" | "happy_hour" | "pool" | "activity" | "restaurant" | "idea";
   category: FeedCategory;
   categoryLabel: string;
   place: string; // post header: who/where

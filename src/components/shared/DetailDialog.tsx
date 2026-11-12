@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { ageText, type FeedItem } from "@/lib/feed-types";
 import { Icon } from "./Icon";
-import { Price } from "./PostCard";
+import { Price } from "./Price";
 import { useSaved } from "./SavedProvider";
 
 /** Details about one item, with a link to the source site. */

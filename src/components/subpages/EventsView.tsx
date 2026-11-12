@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
-import { AgeFilter, AgePill, useAgeGroup } from "./AgeFilter";
-import { DetailDialog } from "./DetailDialog";
-import { FilterRow } from "./FilterRow";
-import { Icon } from "./Icon";
-import { useSaved } from "./SavedProvider";
+import { AgeFilter, AgePill, useAgeGroup } from "@/components/shared/AgeFilter";
+import { DetailDialog } from "@/components/shared/DetailDialog";
+import { FilterRow } from "@/components/shared/FilterRow";
+import { Icon } from "@/components/shared/Icon";
+import { useSaved } from "@/components/shared/SavedProvider";
 
 const FILTERS = [
   { id: "all", label: "Allt" },

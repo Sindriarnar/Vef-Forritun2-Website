@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import { Feed } from "@/components/Feed";
-import { NoData } from "@/components/NoData";
+import { Frontpage } from "@/components/home/Frontpage";
+import { NoData } from "@/components/shared/NoData";
 import { getFeed } from "@/lib/feed";
 import { formatDay, formatLongDate, formatTime } from "@/lib/format";
-import { getLastUpdated, getSourceNames } from "@/lib/queries";
+import { getLastUpdated } from "@/lib/queries";
 
 export default function Home() {
   return (
@@ -17,14 +17,13 @@ export default function Home() {
 }
 
 async function FeedData() {
-  const [items, lastUpdated, sources] = await Promise.all([getFeed(), getLastUpdated(), getSourceNames()]);
+  const [items, lastUpdated] = await Promise.all([getFeed(), getLastUpdated()]);
   if (!lastUpdated) return <NoData />;
   return (
-    <Feed
+    <Frontpage
       items={items}
       todayLabel={formatLongDate(new Date().toISOString())}
       updatedLabel={`${formatDay(lastUpdated)} kl. ${formatTime(lastUpdated)}`}
-      sources={sources}
     />
   );
 }

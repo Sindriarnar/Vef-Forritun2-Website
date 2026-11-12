@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CATEGORIES, fitsAgeGroup, inCategory, type FeedCategory, type FeedItem } from "@/lib/feed-types";
-import { AgeFilter, useAgeGroup } from "./AgeFilter";
-import { DetailDialog } from "./DetailDialog";
+import { AgeFilter, useAgeGroup } from "@/components/shared/AgeFilter";
+import { DetailDialog } from "@/components/shared/DetailDialog";
 import { MovieShelf, PlaceList, PlaceRow } from "./FeedModules";
-import { Icon } from "./Icon";
+import { Icon } from "@/components/shared/Icon";
 import { IdeaCards } from "./IdeaCards";
 import { PostCard } from "./PostCard";
-import { useSaved } from "./SavedProvider";
+import { useSaved } from "@/components/shared/SavedProvider";
 
 interface FeedProps {
   items: FeedItem[];
@@ -86,6 +86,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
   // One shelf per day: today, plus tomorrow when few or no showings are left today.
   const movieDays = [...new Set(movies.map((m) => m.dayKey))].map((day) => movies.filter((m) => m.dayKey === day));
   const happyHours = visible.filter((i) => i.kind === "happy_hour");
+  const restaurants = visible.filter((i) => i.kind === "restaurant");
   const activities = visible.filter((i) => i.kind === "activity");
   const pools = visible.filter((i) => i.kind === "pool");
   const ideas = visible.filter((i) => i.kind === "idea");
@@ -114,6 +115,7 @@ export function Feed({ items, todayLabel, updatedLabel, sources }: FeedProps) {
       ),
     })),
     { after: 4, node: <IdeaCards key="ideas" ideas={ideas} limit={onlyIdeas ? undefined : 4} onOpen={setOpen} /> },
+    { after: 5, node: <PlaceList key="restaurants" id="restaurants" title={`Veitingastaðir ${whenOpen(restaurants)}`} places={restaurants} onOpen={setOpen} /> },
     { after: 6, node: <PlaceList key="happy" id="happy" title={`Happy hour ${whenOpen(happyHours)}`} places={happyHours} onOpen={setOpen} /> },
     { after: 8, node: <PlaceList key="pools" id="pools" title={`Sund ${whenOpen(pools)}`} places={pools} onOpen={setOpen} /> },
   ];

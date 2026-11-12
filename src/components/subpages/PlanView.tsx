@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import type { FeedItem } from "@/lib/feed-types";
-import { Icon } from "./Icon";
-import { useSaved } from "./SavedProvider";
+import { Icon } from "@/components/shared/Icon";
+import { useSaved } from "@/components/shared/SavedProvider";
 
 /** What you put on your plan, and what you saved. */
 export function PlanView() {

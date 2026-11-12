@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { FeedItem } from "@/lib/feed-types";
-import { Icon } from "./Icon";
-import { useSaved } from "./SavedProvider";
+import { Icon } from "@/components/shared/Icon";
+import { useSaved } from "@/components/shared/SavedProvider";
 
 /** Our own ideas: coloured note cards, no photos needed. */
 export function IdeaCards({

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { FeedItem } from "@/lib/feed-types";
-import { AgePill } from "./AgeFilter";
+import { AgePill } from "@/components/shared/AgeFilter";
 
 /**
  * Compact sections that break up the feed, so not everything is a big

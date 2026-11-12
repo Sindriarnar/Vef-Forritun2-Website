@@ -57,6 +57,7 @@ export function migrate(db: DB) {
 const ADDED_COLUMNS: { table: string; column: string; definition: string }[] = [
   { table: "items", column: "min_age", definition: "INTEGER" },
   { table: "items", column: "audience", definition: "TEXT CHECK (audience IN ('born', 'fjolskylda'))" },
+  { table: "items", column: "version", definition: "TEXT" },
 ];
 
 function addMissingColumns(db: DB) {

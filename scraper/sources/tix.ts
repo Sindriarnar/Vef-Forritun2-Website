@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
-import type { ScrapedItem, ScrapedOccurrence, Source } from "../types";
+import type { ScrapedItem, ScrapedOccurrence, Source, VenueDetails } from "../types";
 import { ageInfo, ageLimitIn, isFamilyTag, mentionsAlcohol, welcomesKids } from "../lib/ages";
 import { findJsonValues, readFlightData } from "../lib/flight";
+import { inIceland } from "../lib/geo";
 import { absoluteUrl, clean, normaliseIso } from "../lib/text";
 
 /**
@@ -31,6 +32,7 @@ interface TixBoxOfficeEvent {
   description?: unknown; // plain text or Contentful rich text
 }
 
+/** `boxOfficeData` is either an event (it has a ticket `link`) or a venue (it has `coordinates`). */
 interface TixBoxOfficeData {
   name?: string;
   link?: string;
@@ -38,7 +40,15 @@ interface TixBoxOfficeData {
   priceTo?: number | null;
   isSoldOut?: boolean;
   events?: TixBoxOfficeEvent[];
+  // venues: {"city":"Reykjavík","name":"Harpa","address":"Austurbakka 2","zipCode":"101","coordinates":{"lat":64.15,"lon":-21.93}}
+  city?: string;
+  address?: string;
+  zipCode?: string;
+  coordinates?: { lat?: number; lon?: number };
 }
+
+/** Venue name -> address and coordinates, collected from every page read. */
+type Venues = Map<string, VenueDetails>;
 
 export const tix: Source = {
   slug: "tix",
@@ -48,6 +58,7 @@ export const tix: Source = {
   async scrape(http) {
     const now = new Date();
     const items = new Map<string, ScrapedItem>();
+    const venues: Venues = new Map();
 
     for (const path of PAGES) {
       let html: string;
@@ -60,9 +71,19 @@ export const tix: Source = {
         console.warn(`  tix.is: skipped ${path} (${error instanceof Error ? error.message : error})`);
         continue;
       }
-      for (const item of parseTixPage(html, now)) {
+      for (const item of parseTixPage(html, now, venues)) {
         const seen = items.get(item.externalId);
         items.set(item.externalId, seen ? mergeItems(seen, item) : item);
+      }
+    }
+
+    // Tix.is knows where its venues are (all over the country), which puts
+    // the events on the map. A venue may be described on another page than
+    // the event, so this is done once everything has been read.
+    for (const item of items.values()) {
+      item.venueDetails = venues.get(item.venue ?? "");
+      for (const occurrence of item.occurrences ?? []) {
+        occurrence.venueDetails = venues.get(occurrence.venue ?? "");
       }
     }
 
@@ -105,13 +126,17 @@ function mergeItems(first: ScrapedItem, other: ScrapedItem): ScrapedItem {
   };
 }
 
-export function parseTixPage(html: string, now: Date): ScrapedItem[] {
+export function parseTixPage(html: string, now: Date, venues: Venues = new Map()): ScrapedItem[] {
   const cards = readCards(html);
   const flight = readFlightData(html);
   const descriptions = readDescriptions(flight);
   const items = new Map<string, ScrapedItem>();
 
   for (const data of findJsonValues<TixBoxOfficeData>(flight, "boxOfficeData")) {
+    if (data.coordinates && data.name && !data.link) {
+      venues.set(clean(data.name), venueDetails(data));
+      continue;
+    }
     const id = data.link?.match(/tickets\/(\d+)/)?.[1];
     const title = clean(data.name);
     if (!id || !title || items.has(id)) continue;
@@ -156,6 +181,14 @@ export function parseTixPage(html: string, now: Date): ScrapedItem[] {
   }
 
   return [...items.values()];
+}
+
+/** "Austurbakka 2, 101 Reykjavík" and coordinates (unless they are missing or 0,0). */
+function venueDetails(venue: TixBoxOfficeData): VenueDetails {
+  const town = clean(`${venue.zipCode ?? ""} ${venue.city ?? ""}`);
+  const address = [clean(venue.address), town].filter(Boolean).join(", ") || null;
+  const coords = { lat: Number(venue.coordinates?.lat), lng: Number(venue.coordinates?.lon) };
+  return inIceland(coords) ? { address, ...coords } : { address };
 }
 
 /**

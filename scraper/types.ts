@@ -31,6 +31,8 @@ export interface ScrapedOccurrence {
   startsAt: string;
   endsAt?: string | null;
   venue?: string | null;
+  /** Address / coordinates of this occurrence's venue, when the source knows them. */
+  venueDetails?: VenueDetails;
   url?: string | null;
   note?: string | null;
 }
@@ -59,8 +61,21 @@ export interface ScrapedItem {
   audience?: Audience | null;
   validFrom?: string | null;
   validUntil?: string | null;
+  /**
+   * Which version of the source page this was built from (e.g. its "last
+   * modified" time). A source with many pages can compare it with
+   * `previous` and skip fetching pages that haven't changed.
+   */
+  version?: string | null;
   occurrences?: ScrapedOccurrence[];
 }
+
+/**
+ * What a source saved the last time it ran, by externalId (without
+ * occurrences). Sources that fetch one page per item use it to re-use
+ * items whose page hasn't changed.
+ */
+export type PreviousItems = Map<string, ScrapedItem>;
 
 /**
  * A website we scrape. To add a new one, create a file in
@@ -71,5 +86,5 @@ export interface Source {
   slug: string;
   name: string;
   baseUrl: string;
-  scrape(http: PoliteHttp): Promise<ScrapedItem[]>;
+  scrape(http: PoliteHttp, previous: PreviousItems): Promise<ScrapedItem[]>;
 }

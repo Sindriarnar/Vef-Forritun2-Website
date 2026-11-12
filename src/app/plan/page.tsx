@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PlanView } from "@/components/PlanView";
+import { PlanView } from "@/components/subpages/PlanView";
 
 export const metadata: Metadata = { title: "Planið · Hvað á að gera?" };
 
