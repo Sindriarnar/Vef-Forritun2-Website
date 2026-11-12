@@ -1,47 +1,31 @@
-/*
- * Hvað á að gera? — styles
- *
- * Layout follows our AI concept design (on the `concept` branch):
- * left nav rail on desktop, bottom bar on phones, photo feed with a
- * sidebar on wide screens. The visual style is our own: a warm light
- * "paper" background, near-black text, one coral accent, Schibsted
- * Grotesk, information before slogans. Change the look via the tokens below.
- *
- * Breakpoints: > 1200px sidebar visible · <= 900px icon-only nav rail ·
- * <= 640px bottom navigation, full-width feed.
- */
-
-/* ---------- tokens ---------- */
-
 :root {
   color-scheme: light;
-  /* warm paper background, near-black ink, one coral accent */
-  --bg: #f7f4ee;
-  --bg-1: #ffffff;
-  --bg-2: #efebe3;
-  --bg-3: #e6e0d5;
-  --line: #e4ded3;
-  --line-2: #d4ccbf;
-  --text: #1c1a24;
-  --text-2: #47434f;
-  --muted: #6b6571;
-  --accent: #d23c1c; /* buttons, links, badges (4.7:1 on white) */
-  --accent-hover: #b6301a;
-  --accent-bright: #ff5a36; /* logo */
-  --accent-ink: #ffffff;
-  --accent-soft: #fbe6df;
-  --ok: #1f7a50; /* "open now" */
-  --ok-soft: #dff2e7;
-  --shadow: 0 1px 2px rgb(28 26 36 / 0.06), 0 6px 20px rgb(28 26 36 / 0.06);
-  --overlay: rgb(255 255 255 / 0.92);
-  --radius: 14px;
+  --bg: #fff;
+  --bg-1: #fff;
+  --bg-2: #f7f9f9;
+  --bg-3: #eff3f4;
+  --line: #eff3f4;
+  --line-2: #cfd9de;
+  --text: #0f1419;
+  --text-2: #37434c;
+  --muted: #536471;
+  --accent: #146fc1;
+  --accent-hover: #105ca2;
+  --accent-bright: #0f1419;
+  --accent-ink: #fff;
+  --accent-soft: #e8f3fc;
+  --ok: #24744a;
+  --ok-soft: #e8f5ed;
+  --shadow: none;
+  --overlay: #fff;
+  --radius: 16px;
   --radius-sm: 10px;
-  --font: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: var(--font-sans, Arial), Helvetica, system-ui, sans-serif;
   --nav-left: max(28px, calc((100vw - 1240px) / 2));
   --page-left: max(240px, calc((100% - 1240px) / 2 + 220px));
 }
 
-/* ---------- base ---------- */
+/* Base */
 
 * {
   box-sizing: border-box;
@@ -142,7 +126,7 @@ code {
   padding: 48px 0;
 }
 
-/* ---------- buttons, chips, badges ---------- */
+/* Buttons, chips, badges */
 
 .btn {
   display: inline-flex;
@@ -151,17 +135,17 @@ code {
   gap: 8px;
   min-height: 42px;
   padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-3);
+  border-radius: 999px;
+  background: var(--bg-1);
   border: 1px solid var(--line-2);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .btn:hover {
-  background: #ddd6ca;
+  background: var(--bg-3);
 }
 
 .btn svg {
@@ -182,7 +166,7 @@ code {
 
 .btn[aria-pressed="true"] {
   background: var(--accent-soft);
-  border-color: rgb(210 60 28 / 0.35);
+  border-color: var(--accent);
   color: var(--accent);
 }
 
@@ -204,7 +188,7 @@ code {
 }
 
 .chip {
-  padding: 7px 14px;
+  padding: 7px 13px;
   border-radius: 999px;
   border: 1px solid var(--line-2);
   color: var(--text-2);
@@ -215,6 +199,7 @@ code {
 
 .chip:hover {
   border-color: var(--muted);
+  background: var(--bg-3);
 }
 
 .chip[aria-pressed="true"] {
@@ -229,22 +214,21 @@ code {
   left: 12px;
   z-index: 1;
   padding: 4px 9px;
-  border-radius: 7px;
-  font-size: 13px;
+  border-radius: 5px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.4;
 }
 
 .badge-discount {
-  background: var(--accent);
+  background: #d23c1c;
   color: var(--accent-ink);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .badge-date {
   background: var(--overlay);
   color: var(--text);
-  backdrop-filter: blur(6px);
 }
 
 .badge-discount + .badge-date {
@@ -252,16 +236,13 @@ code {
   right: 12px;
 }
 
-/* age limit on a photo, bottom left: "18+", "Börn" */
 .badge-age {
   top: auto;
   bottom: 12px;
   background: var(--overlay);
   color: var(--text);
-  backdrop-filter: blur(6px);
 }
 
-/* the same next to a title */
 .age-pill {
   display: inline-block;
   margin-left: 7px;
@@ -277,7 +258,6 @@ code {
   white-space: nowrap;
 }
 
-/* movie rating in the corner of a poster */
 .poster {
   position: relative;
 }
@@ -289,7 +269,6 @@ code {
   margin: 0;
 }
 
-/* 20+ = alcohol or a 20 ára aldurstakmark: stands out a little more */
 .badge-age[data-strong],
 .age-pill[data-strong] {
   background: var(--text);
@@ -297,7 +276,7 @@ code {
   color: var(--bg);
 }
 
-/* ---------- filter rows (age, kind of event) ---------- */
+/* Filter rows (age, kind of event) */
 
 .filter-group {
   margin-bottom: 18px;
@@ -307,27 +286,36 @@ code {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .filter-row-label {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  flex: none;
+}
+
+.filter-row .chips {
+  min-width: 0;
+}
+
+.feed-column .filter-group,
+.feed-column .category-note {
+  padding-inline: 18px;
 }
 
 .filter-group .chip {
-  padding: 5px 12px;
-  font-size: 13px;
+  padding: 5px 10px;
+  font-size: 12px;
 }
 
-/* two filter rows under each other (events page) */
 .filter-group + .filter-group {
   margin-top: -8px;
 }
 
-/* "Tónleikar í dag og á morgun. Sjá alla tónleika" under the category circles */
 .category-note {
   margin: -4px 0 18px;
   color: var(--muted);
@@ -347,7 +335,6 @@ code {
   font-size: 13px;
 }
 
-/* "37 atriði falin. Sýna allt": makes it clear the filter is hiding things */
 .filter-hint strong {
   color: var(--text-2);
   font-weight: 600;
@@ -420,13 +407,12 @@ code {
   margin-top: 40px;
 }
 
-/* A pressed / active heart is filled in. */
 [aria-pressed="true"] .icon-heart,
 [data-active] .icon-heart {
   fill: currentColor;
 }
 
-/* ---------- logo ---------- */
+/* Logo */
 
 .brand {
   display: flex;
@@ -437,21 +423,21 @@ code {
 .logo-mark {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   background: var(--accent-bright);
   color: #fff;
-  font-size: 21px;
-  font-weight: 900;
+  font-size: 23px;
+  font-weight: 800;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .logo-word {
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 800;
-  letter-spacing: -0.6px;
+  letter-spacing: -0.7px;
   white-space: nowrap;
 }
 
@@ -459,16 +445,15 @@ code {
   color: var(--accent);
 }
 
-/* ---------- header ---------- */
+/* Header */
 
 .site-header {
   position: sticky;
   top: 0;
   z-index: 20;
   height: 68px;
-  /* Solid on purpose: a backdrop-filter here would make the fixed
-     navigation (a child of the header) position itself inside the header. */
-  background: var(--bg);
+  /* Keep this solid: a backdrop filter would contain the fixed navigation. */
+  background: var(--bg-1);
   border-bottom: 1px solid var(--line);
 }
 
@@ -498,12 +483,14 @@ code {
   border: 1px solid var(--line-2);
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-2);
+  color: #fff;
+  background: var(--text);
 }
 
 .header-button:hover {
-  color: var(--text);
-  border-color: var(--muted);
+  color: #fff;
+  border-color: var(--text);
+  background: #272c30;
 }
 
 .icon-button {
@@ -513,7 +500,7 @@ code {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid var(--line-2);
+  border: 0;
   color: var(--text-2);
 }
 
@@ -542,7 +529,7 @@ code {
   place-items: center;
 }
 
-/* ---------- navigation ---------- */
+/* Navigation */
 
 .main-nav {
   position: fixed;
@@ -551,7 +538,7 @@ code {
   width: 180px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   z-index: 15;
 }
 
@@ -559,28 +546,28 @@ code {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 15px;
+  gap: 14px;
+  padding: 13px 14px;
+  border-radius: 999px;
+  font-size: 18px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--text);
   transition: background 0.15s, color 0.15s;
 }
 
 .nav-link:hover {
   color: var(--text);
-  background: var(--bg-1);
+  background: var(--bg-3);
 }
 
 .nav-link[aria-current="page"] {
   color: var(--text);
   font-weight: 700;
-  background: var(--bg-2);
+  background: var(--bg-3);
 }
 
 .nav-link[aria-current="page"] svg {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .nav-count {
@@ -589,15 +576,15 @@ code {
   height: 20px;
   padding: 0 6px;
   border-radius: 10px;
-  background: var(--bg-3);
-  color: var(--text-2);
-  font-size: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
   font-weight: 700;
   display: grid;
   place-items: center;
 }
 
-/* ---------- page shell ---------- */
+/* Page shell */
 
 .page-shell {
   width: min(980px, calc(100% - 290px));
@@ -617,9 +604,9 @@ code {
 
 .page-head h1,
 .feed-head h1 {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -1px;
+  letter-spacing: -0.6px;
   line-height: 1.1;
 }
 
@@ -645,26 +632,28 @@ code {
   font-size: 15px;
 }
 
-/* ---------- feed ---------- */
+/* Feed */
 
 .feed-layout {
   display: grid;
-  grid-template-columns: minmax(0, 580px) minmax(260px, 300px);
-  gap: 48px;
+  grid-template-columns: minmax(0, 600px) minmax(260px, 300px);
+  gap: 28px;
   align-items: start;
-  padding: 28px 0 48px;
+  padding: 0 0 48px;
 }
 
 .feed-column {
   min-width: 0;
+  border-inline: 1px solid var(--line);
 }
 
 .feed-head {
   display: flex;
   justify-content: space-between;
-  align-items: end;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  padding: 22px 18px;
 }
 
 .feed-head p::first-letter {
@@ -675,17 +664,19 @@ code {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 210px;
+  width: 180px;
   padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-2);
+  border-radius: 999px;
+  background: var(--bg-3);
   border: 1px solid transparent;
   color: var(--muted);
 }
 
 .search:focus-within {
-  border-color: var(--line-2);
+  border-color: var(--accent);
   background: var(--bg-1);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .search svg {
@@ -715,28 +706,26 @@ code {
   border: 1px solid var(--line-2);
 }
 
-/* category circles */
-
 .stories {
   display: flex;
-  gap: 6px;
+  gap: 7px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 2px 2px 8px;
+  padding: 4px 16px 18px;
   margin-bottom: 18px;
   border-bottom: 1px solid var(--line);
 }
 
 .story {
-  flex: 0 0 82px;
+  flex: 0 0 73px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
   padding-bottom: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--text-2);
   text-align: center;
   line-height: 1.25;
 }
@@ -749,7 +738,7 @@ code {
   height: 62px;
   border-radius: 50%;
   border: 2px solid var(--line-2);
-  background: var(--bg-2);
+  background: var(--bg-3);
   overflow: hidden;
   color: var(--text-2);
   transition: border-color 0.15s;
@@ -774,12 +763,15 @@ code {
 }
 
 .story[aria-pressed="true"] .story-ring {
-  border-color: var(--accent);
+  border-color: transparent;
+  background:
+    linear-gradient(var(--bg-1), var(--bg-1)) padding-box,
+    linear-gradient(35deg, #f9a13c, #ef3d6b, #b94bc1) border-box;
 }
 
 .feed {
   display: grid;
-  gap: 28px;
+  gap: 0;
 }
 
 .feed-end {
@@ -791,24 +783,26 @@ code {
   text-align: center;
 }
 
-/* ---------- post ---------- */
+/* Post */
 
 .post {
   min-width: 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .post-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  padding: 18px 16px 0;
 }
 
 .avatar {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
   color: #fff;
@@ -837,11 +831,13 @@ code {
 .post-image {
   position: relative;
   display: block;
-  width: 100%;
+  width: calc(100% - 32px);
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  border-radius: var(--radius);
+  border-radius: 14px;
   background: var(--bg-2);
+  border: 1px solid var(--line);
+  margin-inline: 16px;
 }
 
 .post-image img {
@@ -849,11 +845,6 @@ code {
   height: 100%;
   object-fit: cover;
   object-position: center 35%;
-  transition: transform 0.4s;
-}
-
-.post-image:hover img {
-  transform: scale(1.02);
 }
 
 .post-image-empty {
@@ -865,12 +856,12 @@ code {
 }
 
 .post-body {
-  padding: 12px 2px 0;
+  padding: 12px 16px 0;
 }
 
 .post-cat {
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 3px;
 }
@@ -878,7 +869,7 @@ code {
 .post-title {
   font-size: 21px;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.3px;
   line-height: 1.2;
 }
 
@@ -941,20 +932,23 @@ code {
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-top: 10px;
-  margin-left: -8px;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-bottom: 14px;
 }
 
 .action {
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 7px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-2);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
   transition: background 0.15s, color 0.15s;
 }
 
@@ -964,12 +958,12 @@ code {
 }
 
 .action:hover {
-  background: var(--bg-2);
-  color: var(--text);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .action[aria-pressed="true"] {
-  color: var(--accent);
+  color: #d53262;
 }
 
 .action-out {
@@ -983,15 +977,16 @@ code {
   height: 15px;
 }
 
-/* ---------- compact feed sections ---------- */
+/* Compact feed sections */
 
 .module {
-  padding: 18px;
-  border-radius: var(--radius);
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  padding: 20px 18px;
+  border-radius: 0;
+  background: var(--bg-2);
+  border: 0;
+  box-shadow: none;
   min-width: 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .module-head {
@@ -1003,8 +998,8 @@ code {
 }
 
 .module-head h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
   letter-spacing: -0.3px;
 }
 
@@ -1025,8 +1020,6 @@ code {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-
-/* movie posters */
 
 .poster-rail {
   display: flex;
@@ -1116,8 +1109,6 @@ code {
   color: var(--muted);
 }
 
-/* place rows (pools, happy hours, activities) */
-
 .place-list {
   list-style: none;
   margin: 0;
@@ -1179,11 +1170,11 @@ code {
 
 .status {
   flex-shrink: 0;
-  padding: 3px 9px;
+  padding: 3px 7px;
   border-radius: 999px;
   background: var(--bg-3);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1207,12 +1198,9 @@ code {
   overflow: hidden;
 }
 
-/* The sidebar is narrow: name + status is enough. */
 .place-list.compact .place-text small {
   display: none;
 }
-
-/* ideas: coloured note cards */
 
 .idea-grid {
   list-style: none;
@@ -1224,31 +1212,15 @@ code {
 }
 
 .idea {
-  --tone: #fde7dc;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 10px;
   padding: 14px 14px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--tone);
+  border-radius: 12px;
+  background: var(--bg-1);
   min-width: 0;
-}
-
-.idea[data-tone="1"] {
-  --tone: #e3ebfb;
-}
-
-.idea[data-tone="2"] {
-  --tone: #e2f2e4;
-}
-
-.idea[data-tone="3"] {
-  --tone: #f6e4f1;
-}
-
-.idea[data-tone="4"] {
-  --tone: #fdf0c7;
+  border: 1px solid var(--line);
 }
 
 .idea-open {
@@ -1305,32 +1277,34 @@ code {
   background: rgb(255 255 255 / 0.6);
 }
 
-/* ---------- sidebar ---------- */
+/* Sidebar */
 
 .feed-aside {
   position: sticky;
-  top: 96px;
+  top: 88px;
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  padding-top: 20px;
 }
 
 .aside-card {
-  padding: 18px;
+  padding: 20px;
   border-radius: var(--radius);
-  background: var(--bg-1);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  background: var(--bg-2);
+  border: 0;
+  box-shadow: none;
 }
 
 .aside-card h2 {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .aside-card > p {
   margin: 6px 0 14px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .aside-card .btn {
@@ -1393,7 +1367,7 @@ code {
   display: none;
 }
 
-/* ---------- detail dialog ---------- */
+/* Detail dialog */
 
 .detail:has(.no-image) {
   width: min(560px, calc(100% - 32px));
@@ -1413,7 +1387,6 @@ code {
 
 .detail::backdrop {
   background: rgb(28 26 36 / 0.45);
-  backdrop-filter: blur(4px);
 }
 
 body:has(dialog[open]) {
@@ -1579,7 +1552,7 @@ body:has(dialog[open]) {
   font-size: 12px;
 }
 
-/* ---------- events ---------- */
+/* Events */
 
 .filter-bar {
   display: flex;
@@ -1595,7 +1568,6 @@ body:has(dialog[open]) {
   white-space: nowrap;
 }
 
-/* "Velja dag": a chip with the browser's date picker inside */
 .date-pick {
   display: inline-flex;
   align-items: center;
@@ -1619,7 +1591,7 @@ body:has(dialog[open]) {
 }
 
 .date-pick[data-active] input {
-  color-scheme: dark; /* light calendar icon on the dark chip */
+  color-scheme: dark;
 }
 
 .more-days {
@@ -1736,7 +1708,7 @@ body:has(dialog[open]) {
   gap: 2px;
 }
 
-/* ---------- plan ---------- */
+/* Plan */
 
 .plan-section + .plan-section {
   margin-top: 36px;
@@ -1798,7 +1770,7 @@ body:has(dialog[open]) {
   gap: 4px;
 }
 
-/* ---------- map ---------- */
+/* Map */
 
 .secondary-page:has(.map-workspace) {
   max-width: none;
@@ -1869,7 +1841,7 @@ body:has(dialog[open]) {
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
-  /* some logos are transparent; give them something to sit on */
+
   background: var(--bg-2);
 }
 
@@ -1917,15 +1889,14 @@ body:has(dialog[open]) {
 
 .map-canvas.leaflet-container {
   font-family: var(--font);
-  background: var(--bg-2); /* while tiles load */
+  background: var(--bg-2);
 }
 
-/* Calm the default OpenStreetMap colours down a little. */
 .leaflet-tile-pane {
   filter: saturate(0.7) contrast(0.95);
 }
 
-/* Prefixed with .map-canvas so they win over leaflet.css, which loads later. */
+/* Override Leaflet even when its stylesheet loads later. */
 .map-canvas .leaflet-popup-content-wrapper,
 .map-canvas .leaflet-popup-tip {
   background: var(--bg-2);
@@ -1937,7 +1908,7 @@ body:has(dialog[open]) {
   color: var(--muted);
 }
 
-/* ---------- footer ---------- */
+/* Footer */
 
 .site-footer {
   margin-left: var(--page-left);
@@ -1965,7 +1936,7 @@ body:has(dialog[open]) {
   width: 24px;
   height: 24px;
   font-size: 15px;
-  border-radius: 7px;
+  border-radius: 50%;
 }
 
 .footer-inner p {
@@ -1974,7 +1945,7 @@ body:has(dialog[open]) {
   line-height: 1.5;
 }
 
-/* ---------- responsive ---------- */
+/* Responsive */
 
 @media (max-width: 1200px) {
   .feed-layout {
@@ -1998,7 +1969,7 @@ body:has(dialog[open]) {
     border-radius: 50%;
     background: var(--accent);
     color: var(--accent-ink);
-    box-shadow: 0 6px 20px rgb(210 60 28 / 0.35);
+    box-shadow: 0 3px 10px rgb(15 20 25 / .15);
   }
 
   .fab svg {
@@ -2013,7 +1984,14 @@ body:has(dialog[open]) {
   }
 
   .header-button span {
-    display: none;
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .header-button {
@@ -2033,7 +2011,14 @@ body:has(dialog[open]) {
   }
 
   .nav-link > span:not(.nav-count) {
-    display: none;
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .nav-count {
@@ -2113,7 +2098,7 @@ body:has(dialog[open]) {
     width: 28px;
     height: 28px;
     font-size: 18px;
-    border-radius: 8px;
+    border-radius: 50%;
   }
 
   .header-button,
@@ -2123,7 +2108,6 @@ body:has(dialog[open]) {
     border: 0;
   }
 
-  /* bottom navigation bar */
   .main-nav {
     top: auto;
     left: 0;
@@ -2136,8 +2120,8 @@ body:has(dialog[open]) {
     align-items: flex-start;
     gap: 0;
     padding: 6px 8px env(safe-area-inset-bottom);
-    background: rgb(247 244 238 / 0.96);
-    backdrop-filter: blur(14px);
+    background: #fff;
+
     border-top: 1px solid var(--line);
   }
 
@@ -2153,6 +2137,13 @@ body:has(dialog[open]) {
 
   .nav-link > span:not(.nav-count) {
     display: block;
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
   }
 
   .nav-count {
@@ -2170,12 +2161,14 @@ body:has(dialog[open]) {
 
   .feed-layout {
     display: block;
-    padding: 18px 0 90px;
+    padding: 0 0 90px;
   }
 
   .feed-head {
-    padding: 0 16px;
+    padding: 20px 16px;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
   }
 
   .page-head h1,
@@ -2188,21 +2181,20 @@ body:has(dialog[open]) {
   }
 
   .search {
-    width: 44px;
-    height: 40px;
-    padding: 0;
-    justify-content: center;
-    transition: width 0.2s;
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    justify-content: flex-start;
+    flex: 1 0 100%;
   }
 
-  .search input,
   .search kbd {
     display: none;
   }
 
   .search:focus-within {
-    width: 170px;
-    padding: 0 10px;
+    width: 100%;
+    padding: 0 14px;
     justify-content: flex-start;
   }
 
@@ -2220,7 +2212,6 @@ body:has(dialog[open]) {
     padding-inline: 16px;
   }
 
-  /* one scrollable row of age buttons instead of wrapping */
   .filter-group .chips {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -2232,7 +2223,7 @@ body:has(dialog[open]) {
   }
 
   .story {
-    flex-basis: 68px;
+    flex-basis: 67px;
     font-size: 12px;
   }
 
@@ -2253,13 +2244,16 @@ body:has(dialog[open]) {
   }
 
   .post-actions {
-    margin-left: 0;
-    padding-left: 8px;
+    margin-left: 8px;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .post-image {
-    border-radius: 0;
-    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    aspect-ratio: 4 / 3;
+    width: calc(100% - 24px);
+    margin-inline: 12px;
   }
 
   .post-title {
@@ -2269,7 +2263,7 @@ body:has(dialog[open]) {
   .module {
     border-radius: 0;
     border-inline: 0;
-    padding: 16px;
+    padding: 20px 16px;
   }
 
   .poster-rail {
