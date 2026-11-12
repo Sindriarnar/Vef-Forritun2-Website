@@ -1,0 +1,232 @@
+/*
+ * Map page (/map): list, map canvas, pins and popups (Leaflet).
+ * Owner: the sub-pages person (see VERKASKIPTING.md).
+ */
+
+.secondary-page:has(.map-workspace) {
+  max-width: none;
+}
+
+.map-workspace {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-1);
+}
+
+.map-sidebar {
+  padding: 18px 12px;
+  max-height: 640px;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+}
+
+.map-sidebar-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 6px 10px;
+}
+
+.map-sidebar-heading h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.map-sidebar-heading span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.map-list {
+  display: grid;
+  gap: 2px;
+}
+
+.map-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.map-list-item:hover {
+  background: var(--bg-2);
+}
+
+.map-list-item[aria-pressed="true"] {
+  background: var(--bg-3);
+}
+
+.map-list-item > img,
+.map-item-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+
+  background: var(--bg-2);
+}
+
+.map-item-icon {
+  display: grid;
+  place-items: center;
+  background: var(--bg-3) !important;
+  color: var(--muted);
+}
+
+.map-item-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.map-item-copy strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.map-item-copy small,
+.map-item-copy span {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-canvas {
+  position: relative;
+  min-height: 580px;
+  background: var(--bg-2);
+}
+
+.map-pin span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgb(28 26 36 / 0.35);
+}
+
+/* Pin colour by what is at the place; the same dots are in the filter chips and the list. */
+.map-pin-vidburdir span,
+.map-dot-vidburdir {
+  background: var(--accent);
+}
+
+.map-pin-sund span,
+.map-dot-sund {
+  background: #0b8fa8;
+}
+
+.map-pin-matur span,
+.map-dot-matur {
+  background: #d9480f;
+}
+
+.map-pin-afthreying span,
+.map-dot-afthreying {
+  background: #7048e8;
+}
+
+.map-pin-bio span,
+.map-dot-bio {
+  background: #c2255c;
+}
+
+.map-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.chip[aria-pressed="true"] .map-dot {
+  box-shadow: 0 0 0 1.5px #fff;
+}
+
+/* Places we can't put on the map are listed below the others. */
+.map-list-note {
+  margin: 16px 6px 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-popup-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-popup-list a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.map-popup-list small {
+  display: block;
+  color: var(--muted);
+}
+
+.map-popup-more {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-canvas.leaflet-container {
+  font-family: var(--font);
+  background: var(--bg-2);
+}
+
+.leaflet-tile-pane {
+  filter: saturate(0.7) contrast(0.95);
+}
+
+/* Override Leaflet even when its stylesheet loads later. */
+.map-canvas .leaflet-popup-content-wrapper,
+.map-canvas .leaflet-popup-tip {
+  background: var(--bg-2);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+
+.map-canvas a.leaflet-popup-close-button {
+  color: var(--muted);
+}
+
+/*  Responsive  */
+
+@media (max-width: 900px) {
+
+  .map-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .map-sidebar {
+    order: 2;
+    max-height: 280px;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .map-canvas {
+    min-height: 420px;
+  }
+}

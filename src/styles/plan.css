@@ -1,0 +1,81 @@
+/*
+ * Plan page (/plan): "Planið" and saved items.
+ * Owner: the sub-pages person (see VERKASKIPTING.md).
+ */
+
+.plan-section + .plan-section {
+  margin-top: 36px;
+}
+
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.plan-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+}
+
+.plan-thumb {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-3);
+}
+
+.plan-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.plan-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-info h3 {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.plan-info > p:last-child {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/*  Responsive  */
+
+@media (max-width: 640px) {
+
+  .plan-thumb {
+    width: 56px;
+    height: 56px;
+  }
+
+  .plan-actions .btn-small {
+    width: 38px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+  }
+}
