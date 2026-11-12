@@ -1,0 +1,11 @@
+/node_modules/
+/.next/
+/out/
+*.tsbuildinfo
+next-env.d.ts
+AGENTS.md
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
