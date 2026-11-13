@@ -1,33 +1,241 @@
-# Vef-Forritun2-Website
-Hvað á að gera í dag? Vefsíða
 # Hvað á að gera.is
 
+Vefverkefni í Vef-forritun 2 sem safnar saman tilboðum, viðburðum og afþreyingu á Íslandi. Notendur geta fundið eitthvað að gera í dag eða á næstu dögum, vistað hugmyndir og farið áfram á upplýsingasíðu eða bókun hjá seljanda.
 
-Mobile-first frumgerð af síðu sem safnar saman tilboðum, viðburðum og afþreyingu. Markmiðið er að finna eitthvað að gera og fara þaðan áfram á upplýsingasíðu eða bókun hjá seljanda.
+Vefsíðan er byggð með **Next.js** og notar **SQLite** til að geyma gögn. Gögnum er safnað af vefsíðum með Node.js og Cheerio. Viðmótið er hannað fyrst fyrir síma og aðlagast stærri skjám.
 
-Opnaðu `homepage.html` beint í vafra. CSS, JavaScript og ljósmyndir eru innfelld í skránni; engin uppsetning eða nettenging þarf.
+## Uppsetning
 
-## Myndrænt yfirlit fyrir kynningu
+**Forsendur:** Node.js 22 eða nýrra og npm.
 
-Opnaðu [wireframe.html](wireframe.html) til að sjá sex símaútlit, örvar milli skjáa, upprunalega skissu og tillögu að Next.js-uppbyggingu. Notaðu „Kynna flæðið“ / „Næsta skref“ til að leiða áhorfendur í gegnum hugmyndina eða smelltu á hnappa í símunum. „Prenta / PDF“ opnar prentsýn í A3. Myndir eru innfelldar og yfirlitið virkar án nettengingar.
+```bash
+npm install
+```
 
-Yfirlitið er hönnunar- og flæðistillaga að heildinni; virkni keyranlegu forsíðunnar er lýst hér að neðan.
+Búðu til staðbundna stillingaskrá úr `.env.example`:
 
-[wireframe-yfirlit.png](wireframe-yfirlit.png) er mynd af skjáunum sex og tengingunum, tilbúin í skýrslu eða glærur.
+```bash
+# macOS / Linux
+cp .env.example .env.local
+```
 
-## Fyrirhuguð útfærsla
+```powershell
+# Windows / PowerShell
+Copy-Item .env.example .env.local
+```
 
-Verkefnið verður þróað í **Next.js**. Önnur söfn (libraries) verða mögulega notuð og valin eftir þörfum; þau hafa ekki verið ákveðin enn. HTML-skráin er sjálfstæð frumgerð til að prófa útlit og flæði áður en það er útfært í Next.js.
+Safnaðu gögnum og ræstu þróunarþjóninn:
 
-## Frumgerðin
+```bash
+npm run scrape
+npm run dev
+```
 
-Forsíðan fylgir uppsetningu teikningarinnar: valmynd vinstra megin, heiti í miðju, notandatákn hægra megin og **For You / Events** flipar. Tilboðskort sýna ljósmyndir með hvítum texta yfir svörtum litstigul sem dofnar upp í myndina.
+Opnaðu síðan [localhost:3000](http://localhost:3000).
 
-Virkni í þessari útgáfu: skipta um tilboð með punktum eða stroku, opna nánari upplýsingar, skipta yfir í viðburði, opna valmynd og velja handahófskennt tilboð. Notandasvæðið og bókunarhnappurinn sýna aðeins dæmi um framhaldið. Öll tilboð, verð og viðburðir eru sýnigögn.
+### Skipanir
 
-## Hvernig teikningarnar tengjast
+| Skipun | Lýsing |
+| --- | --- |
+| `npm run dev` | Ræsir þróunarþjón Next.js. |
+| `npm run scrape` | Keyrir alla gagnasafnara og vistar niðurstöður í gagnagrunninn. |
+| `npm run scrape -- tix` | Keyrir einn gagnasafnara, hér `tix`. |
+| `npm run build` | Byggir verkefnið fyrir rekstur. |
+| `npm start` | Ræsir byggðu útgáfuna. |
+| `npm run lint` | Keyrir ESLint. |
+| `npm run typecheck` | Athugar TypeScript-týpur. |
 
-**1** er forsíðan. **1.1–1.3** eru gluggar eða lög yfir henni. **2** er viðburðasíðan og **3** er kortið. Þegar glugga er lokað heldur notandinn áfram á síðunni undir honum.
+Dæmi um einstaka gagnasafnara: `kvikmyndir`, `bioparadis`, `smarabio`, `tix`, `hopkaup`, `sundlaugar` og `happyhour`. Skráning gagnasafnara er í `scraper/sources/index.ts`.
+
+## Síður og virkni
+
+| Slóð | Síða | Innihald |
+| --- | --- | --- |
+| `/` | Í dag | Tilboð og viðburðir, afþreying, bíósýningar, hugmyndir, veitingastaðir, happy hour og sund. |
+| `/events` | Viðburðir | Viðburðir næstu 60 daga, flokkaðir eftir degi. Fjöldaga viðburðir birtast á hverjum degi sem þeir standa yfir. |
+| `/map` | Kort | OpenStreetMap-kort af landinu með stöðum, lituðum eftir tegund. Hver staður hefur einn kortapinna og upplýsingaglugga með því sem er í boði. |
+| `/plan` | Planið | Atriði sem notandi hefur sett á planið eða vistað með hjarta. |
+
+### Forsíðan
+
+Forsíðan sýnir myndafærslur og minni efnishluta á milli þeirra: afþreyingu sem er opin, bíómyndir, eigin hugmyndir, veitingastaði í matgörðum, happy hour og sundlaugar. Þegar líður á kvöldið og dagskrá dagsins er lokið sýna viðeigandi hlutar morgundaginn, til dæmis „Í bíó á morgun“ og „Sund á morgun“.
+
+Efnið má sía eftir aldri og flokkunum **Afþreying, Viðburðir, Tónlist, Bíó, Matur & drykkur, Sund** og **Hugmyndir**. Leitin fær fókus með `/`, og „Veldu fyrir mig“ velur atriði af handahófi.
+
+### Viðburðir og kort
+
+Viðburðasíðan býður upp á aldurssíu, tegundarsíu (**Allt / Tónlist**), dagasíur (**Í dag, Á morgun, Um helgina, Næstu 7 daga**) og dagatal undir „Velja dag“. Slóðin `/events?tegund=tonlist` opnar síðuna með tónlistarsíuna virka.
+
+Kortið sýnir meðal annars viðburðastaði, sundlaugar, bari og afþreyingu. Þar er hægt að sía eftir aldri og tegund. Staðir með heimilisfang en án hnita birtast í lista án kortapinna; það á meðal annars við um margar sundlaugar.
+
+### Vistun
+
+„Vista“, „Á planið“ og valinn aldurshópur eru geymd í vafranum með `localStorage`. Notandaaðgangur er því ekki nauðsynlegur í núverandi útgáfu.
+
+## Hönnun og verkaskipting
+
+Útlitið byggir á fyrri hugmyndavinnu: leiðsögn til hliðar á tölvum, neðri valmynd á símum og myndaflæði með hliðardálki. Hugmyndir og skissur eru varðveittar á greininni `concept`.
+
+Núverandi stíll notar hlýjan ljósan bakgrunn, kóralrauðan áherslulit og leturgerðina Schibsted Grotesk. Litir eru skilgreindir efst í `src/styles/shared.css` til að auðvelda breytingar á þemanu.
+
+Vinnan skiptist í þrjú svið: **gögn og gagnasöfnun, forsíðu og undirsíður**. Hvert svið hefur sínar möppur og stílsnið. Nánari verkaskipting er í [VERKASKIPTING.md](VERKASKIPTING.md).
+
+### Uppbygging verkefnisins
+
+| Skrá eða mappa | Hlutverk |
+| --- | --- |
+| `src/lib/feed.ts` | Breytir gagnagrunnsfærslum í `FeedItem` og forsníður texta og dagsetningar á þjóninum. Inniheldur einnig `isMusic`. |
+| `src/lib/feed-types.ts` | Sameiginlegar týpur og aldurssíureglur, meðal annars `fitsAgeGroup`. |
+| `src/lib/map.ts` | Hópar efni eftir stað fyrir kortið. Týpur eru í `map-types.ts`. |
+| `src/lib/format.ts` | Forsníður íslenskar dagsetningar og verð án `Intl`, svo þjónn og vafri skili sama texta. |
+| `src/lib/queries.ts` | SQL-fyrirspurnir vefsíðunnar. |
+| `src/lib/db.ts` | Tengist gagnagrunninum og sér um sjálfvirkar dálkaviðbætur. |
+| `src/lib/match.ts` | Samræmir titla til að sameina sömu kvikmynd úr fleiri heimildum. |
+| `src/components/home/` | Forsíða: `Frontpage`, `PostCard` og eldri `Feed` með bíóhillu, staðalistum og hugmyndakortum. |
+| `src/components/subpages/` | `EventsView`, `PlacesMap` og `PlanView`. |
+| `src/components/shared/` | Sameiginlegir hlutar: haus, upplýsingagluggi, síur, tákn, verð og vistuð atriði. |
+| `src/styles/` | `shared.css`, `home.css`, `events.css`, `map.css` og `plan.css`. Öll eru flutt inn í `src/app/layout.tsx`. |
+| `scraper/sources/` | Gagnasafnarar, einn fyrir hverja vefsíðu. |
+| `scraper/content/ideas.ts` | Handskrifaður hugmyndabanki. |
+| `db/schema.sql` | Töflur og SQL-sýnir. |
+| `data/hvad.db` | Staðbundinn SQLite-gagnagrunnur, undanskilinn Git. |
+
+## Flokkun efnis
+
+### Tónlist
+
+Tónleikar eru viðburðir sem fá einnig flokkinn **Tónlist**. Á forsíðunni birtast tónleikar dagsins og morgundagsins með hlekk á alla tónleika. Á viðburðasíðunni er tónlist valin með tegundarsíunni.
+
+Reglan `isMusic` í `src/lib/feed.ts` notar flokkun skipuleggjanda, til dæmis „Tónleikar“, „Tónlist“, „Rokk og popp“, „Klassík“, „Jazz og blús“, „Kór“ og „Ópera“. Viðburðir teljast einnig tónlist ef heitið inniheldur „tónleikar“. Söngleikir haldast í leikhúsflokki og barnaviðburðir teljast aðeins tónlist þegar um tónleika er að ræða.
+
+### Aldur
+
+Aldurssían er fyrir ofan forsíðuflæðið, viðburðalistann og kortið:
+
+**Allir · 0–14 ára · Fjölskyldan · 15–19 ára · 20+**
+
+Gagnasafnarinn vistar `items.min_age` og `items.audience`. Reglurnar eru í `scraper/lib/ages.ts`.
+
+| Flokkun | Gögn sem liggja til grundvallar |
+| --- | --- |
+| Áfengistengt efni → 20+ | Happy hour og tilboð eða viðburðir þar sem heitið nefnir áfengi, svo sem bjór, vín, kokteil eða mímósu. |
+| Aldurstakmörk | Lýsingar á tix.is, til dæmis „18 ára aldurstakmark“. Takmörkun sem á aðeins við kvöldsýningar er ekki látin gilda um allan viðburðinn. |
+| Aldursmerkingar kvikmynda | Merkingar frá kvikmyndir.is og Smárabíó. Myndir leyfðar öllum eða frá 9 ára aldri og yngri teljast fjölskyldumyndir. Bíó Paradís fær merkingu sömu myndar frá kvikmyndir.is þegar hún finnst þar. |
+| Barnaefni | Bókasafnsviðburðir í flokknum „Börn“. |
+| Fjölskylduefni | Sundlaugar, afþreying, fjölskyldu- og barnaflokkar á tix.is, viðeigandi lýsingar og hugmyndir merktar `family: true`. |
+
+| Aldurshópur | Hvað birtist? |
+| --- | --- |
+| Allir | Allt efni, án aldurssíunar. |
+| 0–14 ára | Allt nema áfengistengt efni, efni með aldurstakmörk yfir 14 árum og kvikmyndir með óþekkta aldursmerkingu. |
+| Fjölskyldan | Aðeins efni ætlað börnum eða fjölskyldum. |
+| 15–19 ára | Allt nema efni eingöngu ætlað börnum og 20+ efni. Viðburðir með 18 ára aldurstakmark birtast merktir „18+“. |
+| 20+ | Allt nema efni eingöngu ætlað börnum. |
+
+Kort sýna merkingar eins og „20+“, „16+“ og „Börn“. Upplýsingaglugginn sýnir einnig aldursupplýsingar. Undir síunni kemur fram hversu mörg atriði eru falin, til dæmis „32 atriði falin. Sýna allt“, svo áhrif vistaðs síuvals séu sýnileg.
+
+### Hugmyndabankinn
+
+Í `scraper/content/ideas.ts` er handskrifaður listi af ókeypis eða ódýrum hugmyndum, svo sem gönguferðum, spilakvöldum, norðurljósaskoðun og bíókvöldi heima.
+
+Hver hugmynd hefur titil, stutta lýsingu og merki, til dæmis `Frítt`, `Úti` eða `Vinahópur`. Einnig má skilgreina birtingarmánuði, `family: true` og hlekk. Skipunin `npm run scrape` hleður árstíðabundnum hugmyndum í gagnagrunninn. Þær birtast sem lituð kort í breytilegri röð eftir degi.
+
+## Gögn og gagnasöfnun
+
+Gögn fara úr heimildavefsíðum og hugmyndabankanum í gagnasafnara (`scraper/`), þaðan í SQLite (`data/hvad.db`) og síðan í gegnum SQL-sýnir og fyrirspurnir til Next.js-síðnanna.
+
+### Gagnagrunnur
+
+`db/schema.sql` skilgreinir töflurnar `sources`, `venues`, `items`, `occurrences` og `scrape_runs`, ásamt sýnunum `v_current_items`, `v_today`, `v_upcoming`, `v_open_soon` og `v_active_deals`. Skemað er keyrt þegar gagnagrunnurinn er opnaður og sýnir eru endurgerðir sjálfkrafa.
+
+`v_current_items` birtir aðeins atriði sem sáust í síðustu vel heppnuðu söfnun viðkomandi heimildar. Ef atriði hverfur af upprunasíðu hverfur það því úr birtingu eftir næstu heppnuðu söfnun. Misheppnuð söfnun felur ekkert.
+
+`scraper/lib/store.ts` bætir við nýjum færslum og uppfærir þær sem eru til. Endurtekin keyrsla á því ekki að búa til tvítekningar.
+
+### Opnunartímar og samræming
+
+- **Opnunartímar:** Vikulegir tímar sundlauga, happy hour og afþreyingarsvæðis Smárabíós eru færðir í tímaslot fyrir næstu sjö daga með `scraper/lib/schedule.ts`. Sýnin `v_open_soon` nær yfir staði sem eru opnir núna eða opna síðar í dag eða á morgun.
+- **Kvikmyndir:** Sama mynd úr fleiri heimildum er sameinuð í eitt kort með samræmdum titli (`items.match_key` og `src/lib/match.ts`). Þetta nær meðal annars yfir „Iceguys – kvikmyndin“ / „IceGuys the Movie“ og „Fjörður (Fjord)“ / „Fjord“.
+- **Staðsetningar:** Hnit eru sótt úr heimildunum sjálfum. tix.is birtir hnit staða, happyhour.is hefur þau í kortahlekkjum og sumar síður sundlaugar.is innihalda Google Plus Code sem `scraper/lib/geo.ts` afkóðar. Aðrir staðir hafa aðeins heimilisfang. Núverandi útfærsla notar ekki utanaðkomandi hnitaleitarþjónustu.
+- **Hægari heimildir:** sundlaugar.is og ofurkaup.is geyma breytingaupplýsingar síðna í `items.version` til að forðast óþarfa endurlestra. Fyrsta keyrsla getur tekið nokkrar mínútur en síðari keyrslur eru hraðari.
+- **Síun:** Viðburðasíðan sækir alla viðburði innan tímabilsins. Forsíðan sækir fleiri en hún birtir svo aldurssíur hafi úr nægu efni að velja.
+
+### Heimildir
+
+| Heimild | Gögn |
+| --- | --- |
+| kvikmyndir.is | Bíósýningar í dag og á morgun, miðakaupatenglar og aldursmerkingar. |
+| bioparadis.is | Dagskrá Bíó Paradísar um sex daga fram í tímann, tungumál texta og merkingar hátíða eða sýningaraða. |
+| smarabio.is | Bíósýningar næstu sjö daga, salir á borð við MAX og Lúxus og aldursmerkingar. Einnig Lasertag, Leiktækjasalur og Fótboltaland. |
+| tix.is | Tónleikar, leikhús og aðrir viðburðir með dagsetningum, stöðum, heimilisföngum, hnitum, verði og aldurstakmörkum. Bæði forsíða og flokkasíður eru lesnar. |
+| hopkaup.is | Tilboð á veitingum og afþreyingu, verð, fyrra verð og afsláttarhlutfall. |
+| ofurkaup.is | Tilboð á veitingum, dekurþjónustu, afþreyingu og ferðum um landið. Vörutilboðum er sleppt. |
+| reykjavik.is | Opnunartímar átta sundlauga Reykjavíkur, þar á meðal á frídögum, ásamt heimilisfangi, mynd og lýsingu. |
+| sundlaugar.is | Sundlaugar, lón og náttúrulaugar um landið, um 100 staðir. Heimilisfang, landshluti, lýsing á stærð og mynd. Hnit aðeins þar sem kortakóði finnst; opnunartímar eru ekki sóttir. |
+| happyhour.is | Happy hour-tímar, vikudagar, heimilisföng og hnit. |
+| borgarbokasafn.is | Viðburðir Borgarbókasafnsins, svo sem föndurkvöld, ritlistasmiðjur, fyrirlestrar og sögustundir. |
+| listasafnreykjavikur.is | Yfirstandandi sýningar í Hafnarhúsi, á Kjarvalsstöðum og í Ásmundarsafni ásamt opnunartímum. |
+| skautaholl.is | Almennir skautatímar í Skautahöllinni í Laugardal. |
+| smaralind.is | Opnunartímar Smáralindar og 13 veitingastaða í matgarðinum Garðinum. |
+| kringlan.is | Opnunartímar Kringlunnar og upplýsingar um matgarðinn Kúmen. Verslana- og veitingastaðalistar úr `/api/` eru ekki sóttir vegna takmarkana í `robots.txt`. |
+| keiluhollin.is | Opnunarupplýsingar Keiluhallarinnar í Egilshöll. Ef heimildin segir aðeins „Opið allan daginn“ er sá texti birtur. |
+| klifurhusid.is | Opnunartímar Klifurhússins. |
+| `scraper/content/ideas.ts` | Eigin hugmyndir verkefnisins; ekki sóttar af öðrum vefsíðum. |
+
+Lasertag hefur eigin opnunartíma og upplýsingar um hópastærð. Leiktækjasalurinn hefur verðupplýsingar. Fótboltaland hefur ekki sérsíðu og fær því tíma afþreyingarsvæðisins; það er aðeins bætt við meðan þess er getið á vefnum.
+
+### Að bæta við heimild
+
+1. Athugaðu `robots.txt` og skilmála heimildarinnar.
+2. Búðu til `scraper/sources/<name>.ts` sem flytur út `Source`; sjá `scraper/types.ts`.
+3. Skráðu heimildina í `scraper/sources/index.ts`.
+4. Haltu fjölda fyrirspurna í lágmarki og notaðu sameiginlega HTTP-hjálparann.
+
+`scraper/lib/http.ts` virðir `robots.txt`, auðkennir safnarann með `SCRAPER_USER_AGENT` og bíður í `SCRAPER_DELAY_MS` milli fyrirspurna á sömu síðu.
+
+Staði sem birta aðeins vikulega opnunartíma má bæta við í `scraper/sources/venues.ts` með vefslóð og textanum sem kemur rétt á undan tímunum.
+
+### Breytingar á skema
+
+`CREATE TABLE IF NOT EXISTS` breytir ekki töflum sem eru þegar til. Þegar dálki er bætt við þarf því að bæta honum í `ADDED_COLUMNS` í `src/lib/db.ts` svo eldri gagnagrunnar uppfærist. Þannig var meðal annars `min_age` og `audience` bætt við.
+
+Annar kostur er að eyða staðbundna gagnagrunninum `data/hvad.db` og keyra `npm run scrape` aftur. Það endurskapar gögnin og eyðir fyrri staðbundnum gagnagrunnsfærslum.
+
+## Stillingar og Git
+
+- `.env.example` er sniðmát í Git og á aðeins að innihalda staðgengilsgildi.
+- `.env.local` geymir raunveruleg staðbundin gildi, til dæmis API-lykla, og er undanskilin Git.
+- `.gitignore` undanskilur `.env*` nema `.env.example`, auk `node_modules/`, `.next/`, gagnagrunnsskráa í `data/`, annála og ritilstillinga.
+- Umhverfisbreytur án `NEXT_PUBLIC_` eru ætlaðar þjóninum. Leynigildi mega aldrei fara í breytur með `NEXT_PUBLIC_`, því þær geta borist í vafrann.
+- `package-lock.json` er vistað í Git til að samræma útgáfur háðra pakka.
+
+Fyrir innsendingu skaltu yfirfara `git status` og tryggja að `.env.local`, gagnagrunnar eða önnur staðbundin gögn séu ekki meðal breytinganna. Til að sjá hvað `git add` myndi bæta við, án þess að sviðsetja skrár:
+
+```bash
+git add --dry-run .
+```
+
+Hver þátttakandi keyrir `npm install` og `npm run scrape` til að setja upp eigin vinnuumhverfi og gagnagrunn.
+
+## Eldri frumgerð og skissur
+
+Áður en Next.js-útfærslan var gerð var búin til sjálfstæð HTML-frumgerð til að prófa útlit og flæði. Þessi hluti lýsir þeirri frumgerð og upprunalegu skissunum.
+
+### HTML-frumgerð
+
+`homepage.html` má opna beint í vafra. CSS, JavaScript og ljósmyndir eru innfelld og frumgerðin virkar án uppsetningar eða nettengingar. Tilboð, verð og viðburðir eru sýnigögn.
+
+Forsíðan hefur valmynd vinstra megin, heiti í miðju, notandatákn hægra megin og flipana **For You / Events**. Tilboðskort sýna ljósmyndir með hvítum texta yfir svörtum litstigul.
+
+Hægt er að skipta um tilboð með punktum eða stroku, opna nánari upplýsingar, fara í viðburði, opna valmynd og velja handahófskennt tilboð. Notandasvæðið og bókunarhnappurinn sýna dæmi um framhald. „Veldu fyrir mig“ velur beint; kort og snúningshjól eru ekki útfærð í þessari HTML-skrá.
+
+### Myndrænt yfirlit
+
+[wireframe.html](wireframe.html) sýnir sex símaútlit, tengingar þeirra, upprunalega skissu og tillögu að Next.js-uppbyggingu. Hnapparnir „Kynna flæðið“ og „Næsta skref“ leiða áhorfendur í gegnum hugmyndina; einnig má smella á hnappa í símunum. „Prenta / PDF“ opnar A3-prentsýn. Myndir eru innfelldar og yfirlitið virkar án nettengingar.
+
+[wireframe-yfirlit.png](wireframe-yfirlit.png) er mynd af skjáunum sex og tengingum þeirra, ætluð í skýrslu eða glærur.
+
+### Flæðirit skissunnar
 
 ```mermaid
 flowchart TD
@@ -57,199 +265,30 @@ flowchart TD
     EventDetails -.->|Áætlað framhald| Booking
 ```
 
-Kortið og snúningshjólið eru hluti af fyrirhugaðri heild samkvæmt teikningunum. Í `homepage.html` velur „Veldu fyrir mig“ tilboð beint; þar er hvorki kort né snúningshjól enn komið.
+### Tengsl skjáa
 
-## Hvaða mynd sýnir hvað?
+| Númer | Skjár | Hegðun samkvæmt skissum |
+| --- | --- | --- |
+| 1 | Forsíða / For You | Upphafssíða með tilboðum. |
+| 1.1 | Nánar um tilboð | Gluggi yfir forsíðu með upplýsingum og fyrirhuguðum hlekk á seljanda. |
+| 1.2 | Valmynd | Lag yfir forsíðu með leiðum í handahófsval og kort. |
+| 1.3 | Handahófsval / snúningshjól | Gluggi yfir forsíðu; niðurstaðan leiðir í upplýsingar um valið tilboð. |
+| 2 | Viðburðir / Events | Sérsíða með viðburðum og upplýsingagluggum, meðal annars fyrir happy hour. |
+| 3 | Kort | Sérsíða með stöðum og staðsetningu notanda. |
 
-Númerin vísa í röð myndanna tíu sem voru sendar í samtalinu.
+Þegar glugga er lokað heldur notandinn áfram á síðunni undir honum. Hlekkir á upplýsingar eða bókun hjá seljanda voru fyrirhugað framhald. Atriði sem eru óljós á skissunum, svo sem nákvæm hegðun viðburðaglugga, eru túlkun á tengslunum.
 
-| Mynd | Innihald og tenging |
+### Myndir úr skissuvinnu
+
+Númerin vísa í röð myndanna tíu sem fylgdu upphaflegri hugmyndavinnu.
+
+| Mynd | Innihald |
 | --- | --- |
-| 1, 2 og 4 | Yfirlit yfir síður 1, 2 og 3 og gluggana 1.1–1.3; örvar sýna flakkið. |
-| 3 | Nærmynd af síðu 2: viðburðalisti með heim-hnappi. |
-| 5 | Nærmynd af síðu 3: kort með stöðum og staðsetningu notanda. |
-| 6 | Nærmynd af 1.3: snúningshjól yfir forsíðunni, snúningshnappur og lokun. |
-| 7 | Dæmi um upplýsingaglugga fyrir Happy hour yfir lista af efni. |
-| 8 | Nærmynd af 1.2: valmynd yfir forsíðunni, með Random og Kort. |
-| 9 | Víðara yfirlit yfir teikningarnar, þar á meðal Happy hour-gluggann. |
-| 10 / homepage.png | Nærmynd af forsíðu 1; grunnurinn að núverandi uppsetningu. |
-
-Flæðiritið lýsir fyrirhugaðri heild. Smáatriði sem eru óljós á skissunum, svo sem nákvæm hegðun upplýsingaglugga fyrir viðburði, eru túlkun á tengslunum.
-
-
-
-
----
-
-## Development setup
-
-**Requirements:** [Node.js](https://nodejs.org/) 22 or newer (developed on Node 26 LTS).
-
-```bash
-npm install                    # install dependencies
-cp .env.example .env.local     # create your local, git-ignored settings
-npm run scrape                 # fill the database with real data
-npm run dev                    # http://localhost:3000
-```
-
-### Scripts
-
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Next.js dev server |
-| `npm run scrape` | Runs every scraper and stores the results in the SQL database |
-| `npm run scrape -- tix` | Runs one scraper (`kvikmyndir`, `bioparadis`, `smarabio`, `tix`, `hopkaup`, `sundlaugar`, `happyhour`) |
-| `npm run build` / `npm start` | Production build / server |
-| `npm run lint` / `npm run typecheck` | ESLint / TypeScript checks |
-
-### Environment variables & secrets
-
-- `.env.example` is the **template** and is committed. It must only contain placeholder values.
-- `.env.local` holds your real values (API keys, etc.) and is **ignored by git**. The `.gitignore` ignores every `.env*` file except `.env.example`.
-- Variables without the `NEXT_PUBLIC_` prefix are server-only. Never put a secret in a `NEXT_PUBLIC_` variable, because those end up in the browser.
-- Before pushing, `git status` should never list `.env.local` or anything in `data/`.
-
-### What goes to GitHub
-
-Only our own source code and config. `.gitignore` keeps everything else local:
-libraries (`node_modules/`, re-installed by `npm install`), build output (`.next/`),
-secrets (`.env.local`), the scraped database (`data/*.db`), logs and editor files.
-`package-lock.json` *is* committed so everyone installs the exact same versions.
-
-To see exactly what would be committed, without staging anything:
-
-```bash
-git add --dry-run .
-```
-
-### The website
-
-The layout follows our earlier AI concept design (nav rail on desktop, bottom bar
-on phones, photo feed with a sidebar); the concept and wireframes are kept on the
-`concept` branch. The visual style is our own: a warm light
-background with one coral accent, the Schibsted Grotesk typeface, and plain
-information instead of slogans. All colours are tokens at the top of
-`src/styles/shared.css`, so the theme is easy to change.
-
-The work is split into three areas (data and scrapers, front page, sub pages),
-each with its own folders and style file: see **[VERKASKIPTING.md](VERKASKIPTING.md)**.
-
-| Page | What it shows |
-| --- | --- |
-| `/` Í dag | Deals and events as photo posts, with compact sections in between: activities open today (exhibitions, climbing, bowling, skating, laser tag...), a poster shelf of today's movies, our own ideas, restaurants in the two malls' food halls, happy hours and pools. Late in the evening, when today is over, the sections show tomorrow instead ("Í bíó á morgun", "Sund á morgun"). Age filter, category circles (Afþreying, Viðburðir, Tónlist, Bíó, Matur & drykkur, Sund, Hugmyndir), search (`/` to focus), "Veldu fyrir mig" (random pick) |
-| `/events` Viðburðir | Every event for the next 60 days, grouped by day; an event is listed on each day it is on. Age filter, kind of event (Allt / Tónlist), day filters (í dag, á morgun, um helgina, næstu 7 daga) and a date picker ("Velja dag"). `/events?tegund=tonlist` opens with only music |
-| `/map` Kort | OpenStreetMap map of the whole country with one pin per place (event venues, pools, bars, activities), coloured by kind. Filters: age and kind. A pin's popup lists what is on there. Places we have an address for but no coordinates (most pools) are listed below the others without a pin |
-| `/plan` Planið | Things you put on your plan, and things you saved (♥) |
-
-"Vista", "Á planið" and the chosen age group are stored in the browser (`localStorage`), so no accounts are needed yet.
-
-Where things are:
-
-- `src/lib/feed.ts` turns database rows into `FeedItem`s (all text and dates are formatted on the server).
-- `src/lib/feed-types.ts` has the shared types and the age-filter rules (`fitsAgeGroup`).
-- `src/lib/map.ts` groups everything by place for the map (`map-types.ts` has its types).
-- `src/lib/format.ts` has Icelandic dates/prices without `Intl`, so server and browser render exactly the same text.
-- `src/components/home/` is the front page (`Frontpage`, `PostCard`, and the old `Feed` with its movie shelf, place lists and idea cards).
-- `src/components/subpages/` has `EventsView`, `PlacesMap` and `PlanView`.
-- `src/components/shared/` is used by every page: header, details dialog, age filter, filter rows, icons, price, saved items.
-- `src/styles/` has the styles, one file per area: `shared.css` (tokens, header, buttons, dialog...), `home.css`, `events.css`, `map.css`, `plan.css`. They are all imported in `src/app/layout.tsx`.
-
-### Music (Tónlist)
-
-Concerts are events that are also in the "Tónlist" category: on the front page it is one of
-the category circles (today's and tomorrow's concerts, with a link to all of them), and on the
-events page it is the "Tegund" filter. An event counts as music when the organiser's own tags
-say so ("Tónleikar", "Tónlist", "Rokk og popp", "Klassík", "Jazz og blús", "Kór", "Ópera"...)
-or its name has "tónleikar" in it; the rule is `isMusic` in `src/lib/feed.ts`. Musicals
-("Söngleikur") stay under theatre, and events made for children only count when they are a concert.
-
-### Age filter (Aldur)
-
-Above the feed, the events list and the map: **Allir · 0–14 ára · Fjölskyldan · 15–19 ára · 20+**.
-20 is the drinking age in Iceland, so anything with alcohol is only shown under 20+.
-
-The scraper saves two things per item (`items.min_age`, `items.audience`); the rules are in
-`scraper/lib/ages.ts`:
-
-| What | How we know |
-| --- | --- |
-| Alcohol → 20+ | Happy hours; deals and events whose title mentions a drink (bjór, vín, kokteill, mímósa...) |
-| Age limits (18+, 20+) | Event descriptions on tix.is: "18 ára aldurstakmark", "Aldurstakmark er 20 ár"... A limit only for the evening shows doesn't count for the whole event |
-| Movie ratings | kvikmyndir.is ("Öllum leyfð", "Bönnuð innan 12 ára") and Smárabíó ("Aldurstakmark: 12"). Allowed for everyone or from 9 or younger = family film. Bíó Paradís has no ratings, so its films get the rating of the same film on kvikmyndir.is |
-| For children | Library events in the "Börn" category |
-| For families | Pools, activities (laser tag, bowling, skating, climbing, museums), tix.is categories like "Fjölskyldan" or "Barna", "frítt fyrir 12 ára og yngri", and ideas marked `family: true` |
-
-The age groups only take away what isn't allowed or meant for that age, so most things show
-in all of them:
-
-| Group | Shows |
-| --- | --- |
-| 0–14 ára | Everything except alcohol and age limits above 14 (and movies whose rating we don't know) |
-| Fjölskyldan | Only what is made for children or families |
-| 15–19 ára | Everything except children-only events and 20+ (18+ events are shown, marked "18+") |
-| 20+ | Everything except children-only events |
-
-Cards show "20+", "16+", "Börn"... and the details dialog says the age. When a group is
-chosen, the line under the buttons says how many things it hides ("32 atriði falin. Sýna allt"),
-because the choice is remembered and it should be obvious when something is missing because of it.
-
-### Our own ideas (Hugmyndabankinn)
-
-`scraper/content/ideas.ts` is a hand-written list of free or cheap things to do
-(walks, game nights, aurora hunting, a home movie night...). Edit it freely:
-each idea has a title, a short text, tags (`Frítt`, `Úti`, `Vinahópur`...), an
-optional list of months it's shown in, `family: true` if it also works with
-children, and an optional link. `npm run scrape` loads the ideas that are in
-season into the database, and the site shows them as coloured cards (a
-different order each day).
-
-### How the data flows
-
-```
-cinemas, tix.is, library, deal sites  ─┐
-pools, skating, bowling, climbing,    ─┼─► scraper/ (Node + cheerio) ─► SQLite (data/hvad.db) ─► SQL views ─► Next.js page
-malls, art museum, bars, our ideas    ─┘
-```
-
-- **`db/schema.sql`**: tables (`sources`, `venues`, `items`, `occurrences`, `scrape_runs`) and views (`v_current_items`, `v_today`, `v_upcoming`, `v_open_soon`, `v_active_deals`). It runs automatically whenever the database is opened.
-- **Only current data is shown**: `v_current_items` keeps an item only if it was seen in its source's latest *successful* scrape, so things removed from a site disappear after the next run, while a failed run hides nothing.
-- **Changed a table in `db/schema.sql`?** `CREATE TABLE IF NOT EXISTS` doesn't alter existing tables, so either delete `data/hvad.db` and run `npm run scrape` again, or add the new column to `ADDED_COLUMNS` in `src/lib/db.ts` so existing databases get it automatically (that's how `min_age`/`audience` were added). Views are re-created automatically.
-- **Opening hours** (pools, happy hours, Smárabíó's entertainment area) are stored as concrete time slots for the next 7 days (`scraper/lib/schedule.ts`), so "what's open now?" is a simple SQL query. `v_open_soon` has every slot that is open now, opens later today or opens tomorrow, so the front page still has something to show after closing time.
-- **Movies from several sources** are merged on the page by a normalised title (`items.match_key`, `src/lib/match.ts`), so "Iceguys – kvikmyndin" (kvikmyndir.is) and "IceGuys the Movie" (Smárabíó) become one card, and so do "Fjörður (Fjord)" (Bíó Paradís) and "Fjord".
-- **Where coordinates come from**: only from the sources themselves, never from a geocoding service (the free ones, such as OpenStreetMap's Nominatim, don't allow bots in their robots.txt). tix.is publishes coordinates for its venues, happyhour.is has them in its map links, and a few sundlaugar.is pages carry a Google "plus code" that `scraper/lib/geo.ts` decodes. Everything else has an address only.
-- **Slow sources remember what they read**: sundlaugar.is has one page per pool (about 100). Each item stores the page's last-modified time in `items.version`, and the next run only fetches pages that changed, so the first run takes a few minutes and later ones a few seconds. ofurkaup.is does the same for its deal pages.
-- **No limits before filtering**: the events page gets every event in the period (it used to get the first 80, which cut the list off after about ten days), and the front page gets more events than it shows, so each age group still has a full list.
-- **`scraper/sources/`**: one file per website. Each returns a list of items; `scraper/lib/store.ts` upserts them into SQL, so re-running the scraper updates rows instead of duplicating them.
-- **`scraper/lib/http.ts`**: polite fetching. It respects `robots.txt`, identifies itself with `SCRAPER_USER_AGENT` and waits `SCRAPER_DELAY_MS` between requests to the same site.
-- **`src/lib/queries.ts`**: the queries the website runs against the views.
-- The database file is git-ignored. Everyone runs `npm run scrape` to build their own.
-
-| Source | What we get |
-| --- | --- |
-| kvikmyndir.is | Today's and tomorrow's showtimes in Icelandic cinemas, with links to buy tickets and age ratings |
-| bioparadis.is | Bíó Paradís program for ~6 days, with subtitle language and series/festival labels |
-| smarabio.is | Smárabíó showtimes for the next 7 days (screen: MAX, Lúxus...) with age ratings, plus **Lasertag** (own opening hours, group size), **Leiktækjasalur** (prices) and **Fótboltaland** (no page of its own on the site, so it gets the entertainment area's hours and is only added while the site mentions it) |
-| tix.is | Concerts, theatre and events, with dates, venues (address and coordinates), prices and age limits. The front page and the category pages are read (music, theatre, family, sports, courses, Christmas, festivals): about 380 events instead of the ~160 on the front page |
-| hopkaup.is | Restaurant and activity deals, with price, original price and discount % |
-| ofurkaup.is | The same kind of deals (restaurants, spa, activities, trips) from all over the country. Product deals are skipped |
-| reykjavik.is | Opening hours of Reykjavík's 8 pools (incl. holiday hours), address, photo, description |
-| sundlaugar.is | Every pool, lagoon and natural pool in Iceland (about 100): address, region, the size of the pools in the page's own words ("Útisundlaug 25×12 metrar"), photo. No opening hours (every page writes them differently), and coordinates only where the page has a map code |
-| happyhour.is | Happy hours: times, weekdays, address and map coordinates |
-| borgarbokasafn.is | City Library events: craft evenings, writing workshops, talks, story hours for children (shown under 0–14) |
-| listasafnreykjavikur.is | Current exhibitions in Hafnarhús, Kjarvalsstaðir and Ásmundarsafn, with each building's opening hours |
-| skautaholl.is | Public skating sessions at Skautahöllin í Laugardal |
-| smaralind.is | Smáralind's opening hours, and the 13 restaurants of its food hall (Garðurinn) with their own hours |
-| kringlan.is | Kringlan's opening hours and its food hall (Kúmen). Its shop and restaurant lists come from `/api/`, which robots.txt disallows, so they aren't read |
-| keiluhollin.is | Bowling hours at Keiluhöllin Egilshöll (the site currently just says "Opið allan daginn", which is what we show) |
-| klifurhusid.is | Opening hours of Klifurhúsið (climbing/bouldering) |
-| `scraper/content/ideas.ts` | Our own ideas (not scraped) |
-
-### Adding a new source
-
-1. Create `scraper/sources/<name>.ts` that exports a `Source` (see `scraper/types.ts`).
-2. Register it in `scraper/sources/index.ts`.
-3. Check the site's `robots.txt` and terms first, and keep requests to a minimum.
-
-A place that just publishes weekly opening hours (like the skating rink or the
-bowling alley) is only a few lines in `scraper/sources/venues.ts`: the page URL
-and the words that come right before the hours.
+| 1, 2 og 4 | Yfirlit yfir síður 1–3 og glugga 1.1–1.3; örvar sýna flakkið. |
+| 3 | Nærmynd af viðburðasíðu 2 með heim-hnappi. |
+| 5 | Nærmynd af korti 3 með stöðum og staðsetningu notanda. |
+| 6 | Nærmynd af snúningshjóli 1.3 með snúnings- og lokunarhnappi. |
+| 7 | Upplýsingagluggi fyrir happy hour yfir efnislista. |
+| 8 | Nærmynd af valmynd 1.2 með Random og Kort. |
+| 9 | Víðara yfirlit yfir skissurnar, meðal annars happy hour-gluggann. |
+| 10 / `homepage.png` | Nærmynd af forsíðu 1; grunnur HTML-frumgerðarinnar. |
