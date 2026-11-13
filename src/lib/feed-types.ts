@@ -116,7 +116,8 @@ export interface FeedItem {
   dayLabel?: string; // movies and places: "í dag" or "á morgun" (when today's are over)
   dayHeading?: string | null; // "Á morgun", "Fimmtudagur 12. nóvember"
   dateParts?: { weekday: string; day: string; month: string } | null;
-  tags?: string[]; // e.g. ideas: "Frítt", "Úti", "Vinahópur"
+  tags?: string[]; // ideas: "Frítt", "Úti", "Vinahópur"; events: "Tónleikar", "Leikhús", "Uppistand"
+  free?: boolean; // known to cost nothing (price 0, or an idea tagged "Frítt"); an unknown price is not free
   music?: boolean; // events: a concert or other music event, also shown under "Tónlist"
   // Optional because items saved in "Planið" before the age filter don't have them.
   minAge?: number | null; // 20 = alcohol / 20 ára aldurstakmark, 12 = "Bönnuð innan 12 ára"

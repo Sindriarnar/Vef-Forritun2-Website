@@ -1,0 +1,315 @@
+/* Curated rows on the front page: poster cards on a sideways shelf. */
+
+.collections {
+  display: grid;
+  gap: 34px;
+  margin: 30px 0 10px;
+}
+
+.row {
+  --tone: var(--coral);
+  min-width: 0;
+}
+
+.row[data-tone="plum"] { --tone: var(--burgundy); }
+.row[data-tone="sun"] { --tone: #e0a100; }
+.row[data-tone="sea"] { --tone: var(--sea); }
+.row[data-tone="pink"] { --tone: #e2577d; }
+.row[data-tone="green"] { --tone: var(--ok); }
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.head h2::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: var(--tone);
+  transform: rotate(45deg);
+}
+
+.head h2 span {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  color: var(--tone);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.head p {
+  margin: 4px 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.arrows {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.arrows button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-2);
+  color: var(--text-2);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.arrows button:hover {
+  border-color: var(--tone);
+  background: var(--tone);
+  color: #fff;
+}
+
+.arrows svg {
+  width: 16px;
+  height: 16px;
+}
+
+.back {
+  transform: rotate(180deg);
+}
+
+.track {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+  padding: 4px 2px 12px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.track li {
+  flex: 0 0 210px;
+  scroll-snap-align: start;
+}
+
+/* Poster card */
+
+.poster {
+  --c1: var(--coral);
+  --c2: var(--pink);
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.poster[data-cat="tonlist"] { --c1: var(--plum); --c2: var(--pink); }
+.poster[data-cat="bio"] { --c1: var(--burgundy); --c2: var(--coral); }
+.poster[data-cat="matur"] { --c1: var(--coral); --c2: var(--sun); }
+.poster[data-cat="afthreying"] { --c1: var(--sun); --c2: var(--coral); }
+.poster[data-cat="sund"] { --c1: var(--sea); --c2: #8fd3d6; }
+.poster[data-cat="hugmyndir"] { --c1: var(--sun); --c2: var(--peach); }
+
+.poster:hover {
+  transform: translateY(-4px) rotate(-0.6deg);
+}
+
+.open {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(150deg, var(--c1), var(--c2));
+  color: #fff;
+  text-align: left;
+}
+
+.open img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.poster:hover .open img {
+  transform: scale(1.06);
+}
+
+/* Dark enough behind the white text on any picture (bright posters too). */
+.shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(30 4 14 / 0.25) 0%,
+    transparent 22%,
+    transparent 38%,
+    rgb(30 4 14 / 0.7) 62%,
+    rgb(30 4 14 / 0.94) 100%
+  );
+}
+
+.price {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-1);
+  color: var(--plum);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Fixed rows (date, two title lines, place), so every card reads the same way. */
+.text {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  grid-template-rows: 14px auto 16px;
+  gap: 4px;
+  padding: 14px;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+.text small {
+  overflow: hidden;
+  color: var(--peach);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 14px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.text strong {
+  min-height: calc(2 * 1.12em);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.3px;
+}
+
+.text span {
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.8);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.add {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.92);
+  color: var(--burgundy);
+  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.4);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.add:hover {
+  transform: scale(1.1);
+}
+
+.add[aria-pressed="true"] {
+  background: var(--ok);
+  color: #fff;
+}
+
+.add svg {
+  width: 16px;
+  height: 16px;
+}
+
+.open:focus-visible,
+.add:focus-visible,
+.arrows button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .arrows {
+    display: none;
+  }
+
+  .track {
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .track li {
+    flex-basis: 152px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster,
+  .open img {
+    transition: none;
+  }
+
+  .poster:hover,
+  .poster:hover .open img {
+    transform: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .collections {
+    gap: 26px;
+    margin-top: 20px;
+  }
+
+  .head {
+    margin-bottom: 10px;
+  }
+
+  .head p {
+    font-size: 13px;
+  }
+
+  .text {
+    padding: 11px;
+  }
+
+  .text strong {
+    font-size: 15px;
+  }
+}
