@@ -86,5 +86,11 @@ export interface Source {
   slug: string;
   name: string;
   baseUrl: string;
+  /**
+   * Optional: a shorter wait between requests to baseUrl's host than the
+   * default SCRAPER_DELAY_MS (2 s). Only for sites that clearly handle it
+   * (no crawl-delay in robots.txt, served from a CDN); say why next to it.
+   */
+  requestDelayMs?: number;
   scrape(http: PoliteHttp, previous: PreviousItems): Promise<ScrapedItem[]>;
 }

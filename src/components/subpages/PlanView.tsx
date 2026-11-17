@@ -1,44 +1,78 @@
 "use client";
 
 import Link from "next/link";
+import { Fragment, useState } from "react";
 import type { FeedItem } from "@/lib/feed-types";
+import { travelBetween } from "@/lib/item-utils";
+import { DetailDialog } from "@/components/shared/DetailDialog";
 import { Icon } from "@/components/shared/Icon";
 import { useSaved } from "@/components/shared/SavedProvider";
+import { Outings } from "./Outings";
 
-/** What you put on your plan, and what you saved. */
-export function PlanView() {
+interface PlanViewProps {
+  items: FeedItem[]; // today's feed, for the ready-made outings
+  today: string;
+  tomorrow: string;
+  now: number; // minutes after midnight
+}
+
+/** What you put on your plan, ready-made outings, and what you saved. */
+export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
   const { plan, favorites, loaded, togglePlan, toggleFavorite } = useSaved();
+  const [open, setOpen] = useState<FeedItem | null>(null);
   const planItems = sortByTime(Object.values(plan));
   const favoriteItems = Object.values(favorites);
+  const empty = loaded && planItems.length === 0;
+  const outings = (
+    <div className="plan-section">
+      <Outings items={items} today={today} tomorrow={tomorrow} now={now} onOpen={setOpen} />
+    </div>
+  );
 
   return (
     <>
-      <div className="page-head">
+      <div className="page-head plan-head">
         <h1>Planið</h1>
-        <p>Það sem þú hefur sett á planið eða vistað. Geymist bara í þessum vafra.</p>
+        {empty ? (
+          // Nothing planned yet: one line, and the ready-made plans right below.
+          <p>
+            Ekkert á planinu enn. Veldu tilbúið plan eða ýttu á + við eitthvað á <Link href="/">forsíðunni</Link>.
+          </p>
+        ) : (
+          <p>Geymist bara í þessum vafra.</p>
+        )}
       </div>
 
-      <section className="plan-section" aria-labelledby="plan-heading">
-        <h2 id="plan-heading" className="section-title">
-          Á planinu <span>{loaded ? planItems.length : ""}</span>
-        </h2>
-        {loaded && planItems.length === 0 ? (
-          <div className="empty empty-small">
-            <p>Ekkert komið á planið. Ýttu á „Á planið“ við eitthvað sem þér líst á.</p>
-            <Link className="btn" href="/">
-              Skoða hvað er í dag
-            </Link>
-          </div>
-        ) : (
+      {empty && outings}
+
+      {!empty && (
+        <section className="plan-section" aria-labelledby="plan-heading">
+          <h2 id="plan-heading" className="section-title">
+            Á planinu <span>{loaded ? planItems.length : ""}</span>
+          </h2>
           <ul className="plan-list">
-            {planItems.map((item) => (
-              <li key={item.id}>
-                <PlanCard item={item} onRemove={() => togglePlan(item)} removeLabel="Taka af planinu" />
-              </li>
-            ))}
+            {planItems.map((item, i) => {
+              // How to get here from the previous stop, when both are on the map.
+              const travel = i > 0 ? travelBetween(planItems[i - 1], item) : null;
+              return (
+                <Fragment key={item.id}>
+                  {travel && (
+                    <li className="plan-leg">
+                      <Icon name={travel.mode === "ganga" ? "pin" : "map"} />
+                      {travel.label}
+                    </li>
+                  )}
+                  <li>
+                    <PlanCard item={item} onRemove={() => togglePlan(item)} removeLabel="Taka af planinu" />
+                  </li>
+                </Fragment>
+              );
+            })}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
+
+      {!empty && outings}
 
       <section className="plan-section" id="vistad" aria-labelledby="saved-heading">
         <h2 id="saved-heading" className="section-title">
@@ -56,6 +90,8 @@ export function PlanView() {
           </ul>
         )}
       </section>
+
+      <DetailDialog item={open} onClose={() => setOpen(null)} />
     </>
   );
 }

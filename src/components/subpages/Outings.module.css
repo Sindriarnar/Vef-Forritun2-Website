@@ -1,0 +1,368 @@
+/* "Tilbúin plön í dag" on Planið: filters and outing cards with ordered stops. */
+
+.outings {
+  margin: 0 0 32px;
+}
+
+.head h2 {
+  margin: 0;
+  font-size: clamp(22px, 3.4vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Filters: a rounded panel, one labelled row per filter */
+
+.filters {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 16px;
+  padding: 6px;
+  border-radius: 22px;
+  background: var(--bg-1);
+  box-shadow: 0 1px 0 var(--line-2), 0 8px 24px -18px rgb(74 13 38 / 0.4);
+}
+
+.group {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+}
+
+.group + .group {
+  border-top: 1px solid var(--line);
+}
+
+.groupLabel {
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.options {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.options::-webkit-scrollbar {
+  display: none;
+}
+
+.options button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px; /* comfortable to tap */
+  padding: 0 13px;
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.options button:hover {
+  background: var(--bg-2);
+}
+
+.options button[aria-checked="true"] {
+  background: var(--burgundy);
+  color: #fff;
+}
+
+.options svg {
+  width: 14px;
+  height: 14px;
+}
+
+.none {
+  padding: 28px;
+  border-radius: 22px;
+  background: var(--bg-2);
+  color: var(--muted);
+  text-align: center;
+}
+
+.link {
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+/* Card */
+
+.card {
+  --t1: var(--coral);
+  --t2: var(--pink);
+  --ink: var(--plum);
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px;
+  background: var(--bg-1);
+  box-shadow: 0 1px 0 var(--line-2), 0 14px 34px -22px rgb(74 13 38 / 0.45);
+  overflow: hidden;
+}
+
+.card[data-tone="sun"] { --t1: var(--sun); --t2: var(--peach); }
+.card[data-tone="green"] { --t1: #b8f0c8; --t2: #6fd3a0; }
+.card[data-tone="pink"] { --t1: var(--pink); --t2: var(--coral); }
+.card[data-tone="plum"] { --t1: var(--burgundy); --t2: var(--plum); --ink: #fff; }
+.card[data-tone="sea"] { --t1: #c9e8f0; --t2: #8fc9db; }
+.card[data-tone="coral"] { --t1: var(--coral); --t2: var(--sun); }
+
+.cardHead {
+  position: relative;
+  padding: 20px 20px 18px;
+  background:
+    radial-gradient(circle at 92% 8%, rgb(255 255 255 / 0.35) 0 14%, transparent 15%),
+    linear-gradient(140deg, var(--t1), var(--t2));
+  color: var(--ink);
+}
+
+.kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.cardHead h3 {
+  margin: 4px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.cardHead p:not(.kicker) {
+  margin: 6px 0 0;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.price {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.75);
+  color: var(--plum);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Stops, with a dotted line joining them */
+
+.stops {
+  margin: 0;
+  padding: 14px 16px 6px;
+  list-style: none;
+}
+
+.stops li {
+  display: grid;
+}
+
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 15px;
+  padding: 8px 0 8px 22px;
+  border-left: 2px dashed var(--line-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.leg[data-empty] {
+  min-height: 14px;
+  padding-block: 0;
+}
+
+.leg svg {
+  width: 13px;
+  height: 13px;
+}
+
+.stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  border-radius: 16px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.stop:hover {
+  background: var(--bg-2);
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--burgundy);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.thumb {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(140deg, var(--t1), var(--t2));
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.what {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.what small {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.what strong {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.what span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cardFoot {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px 16px 16px;
+}
+
+.primary,
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.primary {
+  flex: 1;
+  background: var(--burgundy);
+  color: #fff;
+}
+
+.primary:hover {
+  background: var(--plum);
+}
+
+.primary[aria-pressed="true"] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.ghost {
+  border: 1.5px solid var(--line-2);
+  color: var(--text-2);
+}
+
+.ghost:hover {
+  border-color: var(--burgundy);
+}
+
+.primary svg,
+.ghost svg {
+  width: 16px;
+  height: 16px;
+}
+
+.options button:focus-visible,
+.stop:focus-visible,
+.primary:focus-visible,
+.ghost:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  /* A fade on the right edge says the row scrolls. */
+  .options {
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+    padding-right: 24px;
+  }
+
+  .cardHead {
+    padding: 16px 16px 14px;
+  }
+
+  .cardHead h3 {
+    font-size: 22px;
+  }
+
+  .cardHead p:not(.kicker) {
+    font-size: 13px;
+  }
+
+  .price {
+    margin-top: 10px;
+  }
+}

@@ -147,9 +147,13 @@ export function eventToItem(event: EventRow): FeedItem {
     dayKey: day,
     dayHeading: formatDayHeading(event.next_start),
     dateParts: dateParts(event.next_start),
+    tags: event.tags?.split(",").filter(Boolean),
+    free: event.price_isk === 0,
     music: isMusic(event),
     minAge: event.min_age,
     audience: event.audience,
+    lat: event.lat,
+    lng: event.lng,
   };
 }
 
@@ -250,6 +254,7 @@ export function ideaToItem(idea: IdeaRow): FeedItem {
     isLive: false,
     startsAt: null,
     tags,
+    free: tags.includes("Frítt"),
     minAge: idea.min_age,
     audience: idea.audience,
   };

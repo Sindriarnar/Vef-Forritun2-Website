@@ -68,6 +68,8 @@ export interface EventRow extends AgeColumns {
   tags: string | null;
   subtitle: string | null;
   source_name: string;
+  lat: number | null; // the venue of this row's date, when we know where it is
+  lng: number | null;
   // Only from getEventDays (one row per event per day):
   times_that_day?: number;
   day_number?: number; // 1 = the event's first day in the list
@@ -265,7 +267,7 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
   return getDb()
     .prepare(
       `SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, source_name,
-              min_age, audience,
+              min_age, audience, lat, lng,
               MIN(starts_at) AS next_start,
               COUNT(DISTINCT substr(starts_at, 1, 10)) AS date_count
          FROM v_upcoming
@@ -293,7 +295,7 @@ export async function getEventDays({ withinDays = 60 } = {}): Promise<EventRow[]
               ROW_NUMBER() OVER (PARTITION BY item_id ORDER BY next_start) AS day_number
          FROM (
            SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, source_name,
-                  min_age, audience,
+                  min_age, audience, lat, lng,
                   MIN(starts_at) AS next_start,     -- the first time that day
                   COUNT(*)       AS times_that_day
              FROM v_upcoming

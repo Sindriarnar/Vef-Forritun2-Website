@@ -15,6 +15,12 @@ import { findAddress, parseWeeklyHours, upcomingDates } from "../lib/schedule";
  *      elements with data-show-date / -time / -screen / -booking-url
  *   3. /smarabio/opnunartimar has the entertainment area's opening hours
  * Only movies shown in the next few days are fetched, one page each.
+ *
+ * Speed: those pages are fetched in parallel, 300 ms apart instead of
+ * the usual 2 s (about 5 s in all instead of 40 s). That is still gentle:
+ * robots.txt sets no crawl-delay, the site is served from Webflow's CDN,
+ * and a single visit to /bio makes the browser fetch every movie page at
+ * once (Finsweet "nest").
  */
 const BASE = "https://www.smarabio.is";
 const VENUE = "Smárabíó";
@@ -30,31 +36,40 @@ export const smarabio: Source = {
   slug: "smarabio",
   name: "Smárabíó",
   baseUrl: BASE,
+  requestDelayMs: 300, // see "Speed" above
 
   async scrape(http) {
     const now = new Date();
     const dates = new Set(upcomingDates(now));
-    const items: ScrapedItem[] = [];
 
-    for (const movie of parseMovieList(await http.getText(`${BASE}/bio`), dates)) {
-      const url = `${BASE}/kvikmyndir/${movie.slug}`;
-      const page = parseMoviePage(await http.getText(url), dates);
-      if (page.occurrences.length === 0) continue;
-      items.push({
-        externalId: movie.slug,
-        category: "movie",
-        title: page.title ?? movie.title,
-        subtitle: movie.subtitle,
-        ...movieRating(movie.subtitle), // "... · Aldurstakmark: 12"
-        url,
-        imageUrl: movie.imageUrl,
-        venue: VENUE,
-        occurrences: page.occurrences,
-      });
-    }
+    // The movie list first; the entertainment pages don't depend on it, so
+    // they start right after (and load while /bio is being read).
+    const list = http.getText(`${BASE}/bio`);
+    const activities = scrapeActivities(http, now);
+    activities.catch(() => {}); // a failure is reported when it's awaited below, not as "unhandled"
+    const listed = parseMovieList(await list, dates);
 
-    items.push(...(await scrapeActivities(http, now)));
-    return items;
+    // All movie pages in parallel (the HTTP client still spaces them out).
+    const movies = await Promise.all(
+      listed.map(async (movie): Promise<ScrapedItem | null> => {
+        const url = `${BASE}/kvikmyndir/${movie.slug}`;
+        const page = parseMoviePage(await http.getText(url), dates);
+        if (page.occurrences.length === 0) return null;
+        return {
+          externalId: movie.slug,
+          category: "movie",
+          title: page.title ?? movie.title,
+          subtitle: movie.subtitle,
+          ...movieRating(movie.subtitle), // "... · Aldurstakmark: 12"
+          url,
+          imageUrl: movie.imageUrl,
+          venue: VENUE,
+          occurrences: page.occurrences,
+        };
+      }),
+    );
+
+    return [...movies.filter((m): m is ScrapedItem => m !== null), ...(await activities)];
   },
 };
 
@@ -75,16 +90,20 @@ const ACTIVITY_PAGES = [
 ];
 
 async function scrapeActivities(http: { getText(url: string): Promise<string> }, now: Date): Promise<ScrapedItem[]> {
-  const hoursPage = await http.getText(`${BASE}/smarabio/opnunartimar`);
+  // The hours page and the activity pages, fetched in parallel.
+  const [hoursPage, ...activityPages] = await Promise.all([
+    http.getText(`${BASE}/smarabio/opnunartimar`),
+    ...ACTIVITY_PAGES.map((a) => http.getText(BASE + a.path)),
+  ]);
   const area = parseActivityPage(hoursPage, now, "opnunartímar skemmtisvæðis");
   const venueDetails = { address: area.address };
   const items: ScrapedItem[] = [];
   let mentionsFootball = area.mentionsFootball;
   let footballImage = area.footballImage;
 
-  for (const activity of ACTIVITY_PAGES) {
+  for (const [i, activity] of ACTIVITY_PAGES.entries()) {
     const url = BASE + activity.path;
-    const page = parseActivityPage(await http.getText(url), now, "opnunartímar");
+    const page = parseActivityPage(activityPages[i], now, "opnunartímar");
     mentionsFootball ||= page.mentionsFootball;
     footballImage ??= page.footballImage;
 
