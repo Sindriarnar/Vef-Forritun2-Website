@@ -30,6 +30,7 @@ async function main() {
     const runId = startRun(db, sourceId);
     const started = Date.now();
     process.stdout.write(`→ ${source.name} ... `);
+    if (source.requestDelayMs !== undefined) http.setHostDelay(source.baseUrl, source.requestDelayMs);
 
     try {
       const items = await source.scrape(http, loadPrevious(db, sourceId));

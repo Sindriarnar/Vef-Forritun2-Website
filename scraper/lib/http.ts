@@ -7,13 +7,17 @@ type Robots = ReturnType<typeof robotsParser>;
  *  - identifies itself with SCRAPER_USER_AGENT
  *  - respects each site's robots.txt
  *  - waits SCRAPER_DELAY_MS between two requests to the same host
+ *    (a source can ask for a shorter wait for its own site, see
+ *    Source.requestDelayMs); requests made at the same time take turns
  *  - gives up after SCRAPER_TIMEOUT_MS
  */
 export class PoliteHttp {
   private readonly userAgent: string;
   private readonly delayMs: number;
   private readonly timeoutMs: number;
-  private readonly lastRequestAt = new Map<string, number>();
+  /** When the next request to each host may start (reserved slots, so parallel requests still take turns). */
+  private readonly nextSlot = new Map<string, number>();
+  private readonly hostDelays = new Map<string, number>();
   private readonly robotsCache = new Map<string, Robots | null>();
 
   constructor() {
@@ -21,6 +25,15 @@ export class PoliteHttp {
       process.env.SCRAPER_USER_AGENT ?? "HvadAdGeraBot/0.1 (student project)";
     this.delayMs = Number(process.env.SCRAPER_DELAY_MS ?? 2000);
     this.timeoutMs = Number(process.env.SCRAPER_TIMEOUT_MS ?? 20000);
+  }
+
+  /**
+   * Use a different wait between requests for one site (e.g. a CDN-hosted
+   * site whose own pages make the browser fetch dozens of pages at once).
+   * Never less than 250 ms.
+   */
+  setHostDelay(baseUrl: string, delayMs: number) {
+    this.hostDelays.set(new URL(baseUrl).host, Math.max(250, delayMs));
   }
 
   async getText(url: string): Promise<string> {
@@ -105,12 +118,15 @@ export class PoliteHttp {
     return this.userAgent.match(/[A-Za-z]+Bot/)?.[0] ?? (this.userAgent.split(/[\s/]/)[0] || "*");
   }
 
+  /**
+   * Wait until this host's next free slot, and reserve it. Reserving
+   * before waiting means requests started together (Promise.all) are
+   * spaced out one delay apart instead of all going at once.
+   */
   private async waitForTurn(host: string) {
-    const last = this.lastRequestAt.get(host);
-    if (last !== undefined) {
-      const wait = last + this.delayMs - Date.now();
-      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-    }
-    this.lastRequestAt.set(host, Date.now());
+    const now = Date.now();
+    const slot = Math.max(now, this.nextSlot.get(host) ?? now);
+    this.nextSlot.set(host, slot + (this.hostDelays.get(host) ?? this.delayMs));
+    if (slot > now) await new Promise((r) => setTimeout(r, slot - now));
   }
 }
