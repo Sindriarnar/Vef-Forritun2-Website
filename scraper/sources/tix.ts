@@ -54,23 +54,33 @@ export const tix: Source = {
   slug: "tix",
   name: "Tix.is",
   baseUrl: BASE,
+  requestDelayMs: 300, // Tix.is is Vercel-cached and robots.txt has no crawl-delay.
 
   async scrape(http) {
     const now = new Date();
     const items = new Map<string, ScrapedItem>();
     const venues: Venues = new Map();
 
-    for (const path of PAGES) {
-      let html: string;
-      try {
-        html = await http.getText(BASE + path);
-      } catch (error) {
-        // The front page must work; a category page that is gone (e.g.
-        // /category/jol after Christmas) only means fewer extra events.
-        if (path === "/") throw error;
-        console.warn(`  tix.is: skipped ${path} (${error instanceof Error ? error.message : error})`);
-        continue;
-      }
+    // Load the front page first so the HTTP client caches robots.txt before
+    // the category requests begin together.
+    const pages: (string | null)[] = [await http.getText(BASE + PAGES[0])];
+    pages.push(
+      ...(await Promise.all(
+        PAGES.slice(1).map(async (path) => {
+          try {
+            return await http.getText(BASE + path);
+          } catch (error) {
+            // A category page that is gone (e.g. /category/jol after Christmas)
+            // only means fewer extra events.
+            console.warn(`  tix.is: skipped ${path} (${error instanceof Error ? error.message : error})`);
+            return null;
+          }
+        }),
+      )),
+    );
+
+    for (const html of pages) {
+      if (!html) continue;
       for (const item of parseTixPage(html, now, venues)) {
         const seen = items.get(item.externalId);
         items.set(item.externalId, seen ? mergeItems(seen, item) : item);

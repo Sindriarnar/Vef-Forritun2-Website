@@ -22,15 +22,7 @@ export const listasafn: Source = {
   baseUrl: BASE,
 
   async scrape(http) {
-    const items = parseExhibitions(await http.getText(`${BASE}/`), new Date());
-    // The images are huge originals (often 2–3 MB). Their image server
-    // (Strapi) also keeps a ~750px "medium_" copy of large images; use it
-    // when it exists.
-    for (const item of items) {
-      const medium = item.imageUrl?.replace(/\/uploads\/(?!medium_)([^/]+)$/, "/uploads/medium_$1");
-      if (medium && medium !== item.imageUrl && (await http.exists(medium))) item.imageUrl = medium;
-    }
-    return items;
+    return parseExhibitions(await http.getText(`${BASE}/`), new Date());
   },
 };
 
@@ -61,7 +53,7 @@ export function parseExhibitions(html: string, now: Date): ScrapedItem[] {
       title,
       subtitle: `Sýning · ${buildingName}`,
       url: absoluteUrl(href, BASE)!,
-      imageUrl: originalImage($card.find("img").first().attr("src")),
+      imageUrl: optimizedImage($card.find("img").first().attr("src")),
       provider: "Listasafn Reykjavíkur",
       venue: buildingName,
       venueDetails: { address: building.address },
@@ -101,12 +93,14 @@ function readBuildings(text: string) {
   return buildings;
 }
 
-/** "/_next/image?url=https%3A%2F%2F...jpg&w=3840" -> the original image URL. */
-function originalImage(src: string | undefined): string | null {
+/** Keep images on the site's optimizer, but request a thumbnail-sized result. */
+function optimizedImage(src: string | undefined): string | null {
   if (!src) return null;
   if (src.startsWith("/_next/image")) {
-    const url = new URL(src, BASE).searchParams.get("url");
-    return url ? absoluteUrl(url, BASE) : null;
+    const url = new URL(src, BASE);
+    if (!url.searchParams.has("url")) return null;
+    url.searchParams.set("w", "750");
+    return url.href;
   }
   return absoluteUrl(src, BASE);
 }
