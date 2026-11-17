@@ -8,7 +8,6 @@ import { kvikmyndir } from "./kvikmyndir";
 import { listasafn } from "./listasafn";
 import { kringlan, smaralind } from "./malls";
 import { ofurkaup } from "./ofurkaup";
-import { reykjavikPools } from "./reykjavik-pools";
 import { smarabio } from "./smarabio";
 import { sundlaugar } from "./sundlaugar";
 import { tix } from "./tix";
@@ -28,7 +27,6 @@ export const sources: Source[] = [
   ofurkaup,
   happyhour,
   // places with opening hours
-  reykjavikPools,
   skautaholl,
   keiluhollin,
   klifurhusid,

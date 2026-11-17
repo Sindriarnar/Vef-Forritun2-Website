@@ -21,8 +21,7 @@ import { clean } from "../lib/text";
  * The first run takes a few minutes; later runs take seconds.
  *
  * Opening hours are not read: they are written differently on every
- * page (summer/winter, holidays). Reykjavík's pools get theirs from
- * reykjavik.is (reykjavik-pools.ts); for the rest we link to the page.
+ * page (summer/winter, holidays).
  */
 const BASE = "https://sundlaugar.is";
 
@@ -64,6 +63,7 @@ export const sundlaugar: Source = {
   slug: "sundlaugar-is",
   name: "Sundlaugar.is",
   baseUrl: BASE,
+  requestDelayMs: 1000, // robots.txt has no crawl-delay; keep the first crawl near two minutes.
 
   async scrape(http, previous) {
     const pools: ApiPool[] = [];
@@ -74,29 +74,52 @@ export const sundlaugar: Source = {
     }
     if (pools.length === 0) throw new Error("Sundlaugar.is: the API returned no pools — did it change?");
 
-    const items: ScrapedItem[] = [];
+    const items: (ScrapedItem | null)[] = new Array(pools.length).fill(null);
     const failed: string[] = [];
-    for (const pool of pools) {
-      const unchanged = reuse(previous, pool);
-      if (unchanged) {
-        items.push(unchanged);
-        continue;
+    let nextIndex = 0;
+    let completed = 0;
+    let consecutiveFailures = 0;
+    let stoppedReason: string | null = null;
+
+    const worker = async () => {
+      while (nextIndex < pools.length && !stoppedReason) {
+        const index = nextIndex++;
+        const pool = pools[index];
+        const unchanged = reuse(previous, pool);
+
+        if (unchanged) {
+          items[index] = unchanged;
+          consecutiveFailures = 0;
+        } else {
+          try {
+            items[index] = parsePoolPage(await getTwice(http, pool.link), pool);
+            consecutiveFailures = 0;
+          } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            failed.push(pool.slug);
+            consecutiveFailures++;
+            const before = previous.get(pool.slug);
+            if (before) items[index] = before;
+            if (consecutiveFailures >= 4) {
+              stoppedReason = `four consecutive pool pages failed; last was ${pool.slug}: ${reason}`;
+            }
+          }
+        }
+
+        completed++;
+        if (completed % 10 === 0 || completed === pools.length) {
+          console.log(`  sundlaugar.is: checked ${completed}/${pools.length} pools`);
+        }
       }
-      try {
-        items.push(parsePoolPage(await getTwice(http, pool.link), pool));
-      } catch {
-        // One slow page must not lose the other hundred: keep what we had
-        // (if anything) and try this pool again on the next run.
-        failed.push(pool.slug);
-        const before = previous.get(pool.slug);
-        if (before) items.push(before);
-      }
-    }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(4, pools.length) }, worker));
+    if (stoppedReason) throw new Error(`Sundlaugar.is: stopping early; ${stoppedReason}`);
     if (failed.length > pools.length / 4) {
       throw new Error(`Sundlaugar.is: ${failed.length} of ${pools.length} pool pages could not be read`);
     }
     if (failed.length) console.warn(`  sundlaugar.is: skipped ${failed.length} page(s) this time: ${failed.join(", ")}`);
-    return items;
+    return items.filter((item): item is ScrapedItem => item !== null);
   },
 };
 
@@ -104,7 +127,8 @@ export const sundlaugar: Source = {
 async function getTwice(http: { getText(url: string): Promise<string> }, url: string): Promise<string> {
   try {
     return await http.getText(url);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") throw error;
     return http.getText(url);
   }
 }
