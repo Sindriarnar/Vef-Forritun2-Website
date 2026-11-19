@@ -29,6 +29,7 @@ Safnaðu gögnum og ræstu þróunarþjóninn:
 ```bash
 npm run scrape
 npm run dev
+npm run geocode:events -- --api-key "api key"
 ```
 
 Opnaðu síðan [localhost:3000](http://localhost:3000).
