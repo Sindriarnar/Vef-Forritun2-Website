@@ -47,6 +47,16 @@ CREATE TABLE IF NOT EXISTS venues (
   url      TEXT
 );
 
+-- Cached Geoapify venue lookups, including queries with no confident match.
+CREATE TABLE IF NOT EXISTS venue_geocode_cache (
+  query        TEXT PRIMARY KEY,
+  lat          REAL,
+  lng          REAL,
+  display_name TEXT,
+  checked_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  CHECK ((lat IS NULL AND lng IS NULL) OR (lat IS NOT NULL AND lng IS NOT NULL))
+);
+
 -- One row per "thing to do": a movie, an event, a deal...
 -- (source_id, external_id) identifies the row on the source website, so
 -- re-running the scraper updates rows instead of duplicating them.

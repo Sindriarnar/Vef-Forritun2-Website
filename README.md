@@ -41,6 +41,7 @@ Opnaðu síðan [localhost:3000](http://localhost:3000).
 | `npm run dev` | Ræsir þróunarþjón Next.js. |
 | `npm run scrape` | Keyrir alla gagnasafnara og vistar niðurstöður í gagnagrunninn. |
 | `npm run scrape -- tix` | Keyrir einn gagnasafnara, hér `tix`. |
+| `npm run geocode:events -- --api-key "YOUR_KEY"` | Finnur hnit fyrir viðburðastaði sem vantar hnit. Krefst Geoapify-lykils. |
 | `npm run build` | Byggir verkefnið fyrir rekstur. |
 | `npm start` | Ræsir byggðu útgáfuna. |
 | `npm run lint` | Keyrir ESLint. |
@@ -157,7 +158,7 @@ Gögn fara úr heimildavefsíðum og hugmyndabankanum í gagnasafnara (`scraper/
 
 - **Opnunartímar:** Vikulegir tímar sundlauga, happy hour og afþreyingarsvæðis Smárabíós eru færðir í tímaslot fyrir næstu sjö daga með `scraper/lib/schedule.ts`. Sýnin `v_open_soon` nær yfir staði sem eru opnir núna eða opna síðar í dag eða á morgun.
 - **Kvikmyndir:** Sama mynd úr fleiri heimildum er sameinuð í eitt kort með samræmdum titli (`items.match_key` og `src/lib/match.ts`). Þetta nær meðal annars yfir „Iceguys – kvikmyndin“ / „IceGuys the Movie“ og „Fjörður (Fjord)“ / „Fjord“.
-- **Staðsetningar:** Hnit eru sótt úr heimildunum sjálfum. tix.is birtir hnit staða, happyhour.is hefur þau í kortahlekkjum og sumar síður sundlaugar.is innihalda Google Plus Code sem `scraper/lib/geo.ts` afkóðar. Aðrir staðir hafa aðeins heimilisfang. Núverandi útfærsla notar ekki utanaðkomandi hnitaleitarþjónustu.
+- **Staðsetningar:** Hnit eru sótt úr heimildunum sjálfum þegar þau eru til. tix.is birtir hnit staða, happyhour.is hefur þau í kortahlekkjum og sumar síður sundlaugar.is innihalda Google Plus Code sem `scraper/lib/geo.ts` afkóðar. Einnig má keyra `npm run geocode:events` með Geoapify-lykli til að leita að vöntuðum hnitum fyrir viðburðastaði; niðurstöður án öruggrar samsvörunar eru ekki vistaðar.
 - **Hægari heimildir:** sundlaugar.is og ofurkaup.is geyma breytingaupplýsingar síðna í `items.version` til að forðast óþarfa endurlestra. Fyrsta keyrsla getur tekið nokkrar mínútur en síðari keyrslur eru hraðari.
 - **Síun:** Viðburðasíðan sækir alla viðburði innan tímabilsins. Forsíðan sækir fleiri en hún birtir svo aldurssíur hafi úr nægu efni að velja.
 
@@ -206,6 +207,7 @@ Annar kostur er að eyða staðbundna gagnagrunninum `data/hvad.db` og keyra `np
 
 - `.env.example` er sniðmát í Git og á aðeins að innihalda staðgengilsgildi.
 - `.env.local` geymir raunveruleg staðbundin gildi, til dæmis API-lykla, og er undanskilin Git.
+- Hægt er að senda Geoapify-lykil beint með `npm run geocode:events -- --api-key "LYKILL"` í stað þess að setja hann í `.env.local`. Skipanalínulyklar geta vistast í skipanasögu; `.env.local` er öruggari kostur fyrir endurtekna notkun.
 - `.gitignore` undanskilur `.env*` nema `.env.example`, auk `node_modules/`, `.next/`, gagnagrunnsskráa í `data/`, annála og ritilstillinga.
 - Umhverfisbreytur án `NEXT_PUBLIC_` eru ætlaðar þjóninum. Leynigildi mega aldrei fara í breytur með `NEXT_PUBLIC_`, því þær geta borist í vafrann.
 - `package-lock.json` er vistað í Git til að samræma útgáfur háðra pakka.
