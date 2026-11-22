@@ -284,6 +284,193 @@
   color: var(--text);
 }
 
+/* Filters: counts, the "Síur" panel and the chips for active filters */
+
+.cats button,
+.panelOptions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cats button svg,
+.panelOptions button svg,
+.moodCount svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3;
+}
+
+.cats button:disabled,
+.panelOptions button:disabled,
+.mood:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.optCount {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.cats button[aria-pressed="true"] .optCount,
+.panelOptions button[aria-pressed="true"] .optCount {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+
+.toolbarEnd {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filterButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-2);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.filterButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.filterButton:hover,
+.filterButton[aria-expanded="true"] {
+  border-color: var(--burgundy);
+  color: var(--burgundy);
+}
+
+.filterBadge {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--burgundy);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  margin: 10px 0 4px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--bg-1);
+  border: 1.5px solid var(--line-2);
+  animation: rise 0.2s ease-out;
+}
+
+.panelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panelLabel {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.panelOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.panelOptions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-2);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.panelOptions button:hover:not(:disabled) {
+  border-color: var(--burgundy);
+  color: var(--burgundy);
+}
+
+.panelOptions button[aria-pressed="true"] {
+  border-color: var(--burgundy);
+  background: var(--burgundy);
+  color: #fff;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--burgundy);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chip svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.5;
+}
+
+.chip:hover {
+  background: var(--burgundy);
+  color: #fff;
+}
+
+.clearAll {
+  padding: 5px 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.clearAll:hover {
+  color: var(--burgundy);
+}
+
+.filterButton:focus-visible,
+.panelOptions button:focus-visible,
+.chip:focus-visible,
+.clearAll:focus-visible {
+  outline: 3px solid var(--sun);
+  outline-offset: 2px;
+}
+
 /* Results */
 
 .resultsHead {
@@ -508,9 +695,27 @@
     margin: 14px 0 4px;
   }
 
-  .search {
+  .toolbarEnd {
     width: 100%;
+  }
+
+  .search {
+    flex: 1;
+    width: auto;
     height: 42px;
+  }
+
+  .filterButton {
+    height: 42px;
+  }
+
+  .panel {
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .panelOptions button {
+    min-height: 40px;
   }
 
   .resultsHead {
