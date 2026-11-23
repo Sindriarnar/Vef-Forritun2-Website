@@ -30,10 +30,10 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
   const [mode, setMode] = useState<Mode>("category");
   const [category, setCategory] = useState<FeedCategory | null>(null);
 
-  const categories = CATEGORIES.map((candidate) => ({ id: candidate.id, label: candidate.label }));
-  const itemCategories = categories.filter((candidate) =>
+  const categories = CATEGORIES.filter((candidate) =>
     items.some((item) => inCategory(item, candidate.id)),
-  );
+  ).map((candidate) => ({ id: candidate.id, label: candidate.label }));
+  const itemCategories = categories;
   const categoryLabel = CATEGORIES.find((candidate) => candidate.id === category)?.label;
   const categoryItems = category ? items.filter((item) => inCategory(item, category)) : [];
 
@@ -109,7 +109,7 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
             <h2>Hvað eigum við að velja?</h2>
             <p className={styles.hint}>Hlutaval tekur mið af aldri og dagavali.</p>
             <div className={styles.choices}>
-              <button type="button" onClick={() => start("category")}>
+              <button type="button" onClick={() => start("category")} disabled={!categories.length}>
                 <Icon name="dice" />
                 Flokkur
               </button>
@@ -118,7 +118,7 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
                 Hlutur
               </button>
             </div>
-            {itemCategories.length === 0 && <p className={styles.hint}>Ekkert passar við núverandi val.</p>}
+            {categories.length === 0 && <p className={styles.hint}>Ekkert passar við núverandi val.</p>}
           </>
         ) : phase === "category-selected" ? (
           <div className={styles.reveal}>

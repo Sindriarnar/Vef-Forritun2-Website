@@ -8,6 +8,7 @@ import { Icon } from "@/components/shared/Icon";
 import { buildCollections } from "./collection-rules";
 import { Collections } from "./Collections";
 import { EventCard } from "./EventCard";
+import { Randomizer } from "./Randomizer";
 import {
   activeCount,
   DAY_PARTS,
@@ -51,14 +52,25 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const [randomizerOpen, setRandomizerOpen] = useState(false);
   const { age, setAge } = useAgeGroup();
 
+  const syncCategoryQuery = useCallback((category: FeedCategory | null) => {
+    const url = new URL(window.location.href);
+    if (category) url.searchParams.set("flokkur", category);
+    else url.searchParams.delete("flokkur");
+    history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
   // Any filter change starts the list from the top again.
   const update = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
     setLimit(PAGE);
+    if (patch.categories) {
+      syncCategoryQuery(patch.categories.length === 1 ? patch.categories[0] : null);
+    }
   };
   const clearAll = () => {
     setFilters(NO_FILTERS);
     setLimit(PAGE);
+    syncCategoryQuery(null);
   };
 
   const haystacks = useMemo(() => new Map(items.map((i) => [i.id, searchText(i)])), [items]);
@@ -114,12 +126,12 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const openRandomizer = useCallback(() => setRandomizerOpen(true), []);
 
   const chooseRandomCategory = useCallback((next: FeedCategory) => {
-    setMood(null);
-    setQuery("");
-    updateCategory(next);
+    setFilters({ ...NO_FILTERS, categories: [next] });
+    setLimit(PAGE);
+    syncCategoryQuery(next);
     setRandomizerOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [updateCategory]);
+  }, [syncCategoryQuery]);
 
   const openRandomItem = useCallback((item: FeedItem) => {
     setRandomizerOpen(false);
@@ -142,7 +154,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
     const match = CATEGORIES.find((candidate) => candidate.id === requestedCategory);
     if (match) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- initialize from the requested home filter
-      setCategory(match.id);
+      setFilters((current) => ({ ...current, categories: [match.id] }));
     }
   }, []);
 
@@ -225,7 +237,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
               </button>
             );
           })}
-          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandom}>
+          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandomizer}>
             <Icon name="dice" />
             <strong>Veldu fyrir mig</strong>
             <small>Komdu mér á óvart</small>
