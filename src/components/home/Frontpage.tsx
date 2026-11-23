@@ -48,6 +48,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const [panelOpen, setPanelOpen] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [open, setOpen] = useState<FeedItem | null>(null);
+  const [randomizerOpen, setRandomizerOpen] = useState(false);
   const { age, setAge } = useAgeGroup();
 
   // Any filter change starts the list from the top again.
@@ -110,21 +111,40 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const groups =
     when === "helgin" ? groupByDay(shown, calendar) : [{ key: "all", heading: null, items: shown }];
 
-  const openRandom = useCallback(() => {
-    const pool = results.length ? results : inWhen;
-    if (pool.length) setOpen(pool[Math.floor(Math.random() * pool.length)]);
-  }, [results, inWhen]);
+  const openRandomizer = useCallback(() => setRandomizerOpen(true), []);
+
+  const chooseRandomCategory = useCallback((next: FeedCategory) => {
+    setMood(null);
+    setQuery("");
+    updateCategory(next);
+    setRandomizerOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [updateCategory]);
+
+  const openRandomItem = useCallback((item: FeedItem) => {
+    setRandomizerOpen(false);
+    setOpen(item);
+  }, []);
 
   // "Veldu fyrir mig" from the header (event) or from another page (#random).
   useEffect(() => {
-    const onRandom = () => openRandom();
+    const onRandom = () => openRandomizer();
     window.addEventListener("hvad:random", onRandom);
     if (window.location.hash === "#random") {
-      history.replaceState(null, "", "/");
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
       onRandom();
     }
     return () => window.removeEventListener("hvad:random", onRandom);
-  }, [openRandom]);
+  }, [openRandomizer]);
+
+  useEffect(() => {
+    const requestedCategory = new URLSearchParams(window.location.search).get("flokkur");
+    const match = CATEGORIES.find((candidate) => candidate.id === requestedCategory);
+    if (match) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- initialize from the requested home filter
+      setCategory(match.id);
+    }
+  }, []);
 
   const whenLabel = WHENS.find((w) => w.id === when)!.label.toLowerCase();
   // A chip for every filter that is on, each with its own "remove".
@@ -381,6 +401,13 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
       <p className={styles.updated}>Síðast uppfært {updatedLabel}.</p>
 
       <DetailDialog item={open} onClose={() => setOpen(null)} />
+      <Randomizer
+        open={randomizerOpen}
+        items={inWhen}
+        onClose={() => setRandomizerOpen(false)}
+        onChooseCategory={chooseRandomCategory}
+        onChooseItem={openRandomItem}
+      />
     </div>
   );
 }

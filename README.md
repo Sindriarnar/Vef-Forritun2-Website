@@ -62,7 +62,7 @@ Dæmi um einstaka gagnasafnara: `kvikmyndir`, `bioparadis`, `smarabio`, `tix`, `
 
 Forsíðan sýnir myndafærslur og minni efnishluta á milli þeirra: afþreyingu sem er opin, bíómyndir, eigin hugmyndir, veitingastaði í matgörðum, happy hour og sundlaugar. Þegar líður á kvöldið og dagskrá dagsins er lokið sýna viðeigandi hlutar morgundaginn, til dæmis „Í bíó á morgun“ og „Sund á morgun“.
 
-Efnið má sía eftir aldri og flokkunum **Afþreying, Viðburðir, Tónlist, Bíó, Matur & drykkur, Sund** og **Hugmyndir**. Leitin fær fókus með `/`, og „Veldu fyrir mig“ velur atriði af handahófi.
+Efnið má sía eftir aldri og flokkunum **Afþreying, Viðburðir, Tónlist, Bíó, Matur & drykkur, Sund** og **Hugmyndir**. Leitin fær fókus með `/`. „Veldu fyrir mig“ opnar handahófsval þar sem hægt er að láta velja flokk eða tiltekið atriði með spunahjóli.
 
 ### Viðburðir og kort
 
