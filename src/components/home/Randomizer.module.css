@@ -1,0 +1,215 @@
+.dialog {
+  width: min(440px, calc(100vw - 28px));
+  max-width: none;
+  max-height: min(92dvh, 720px);
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  color: #fff;
+  box-shadow: 0 24px 80px rgb(22 14 30 / 0.32);
+}
+
+.dialog::backdrop {
+  background: rgb(26 18 32 / 0.62);
+  backdrop-filter: blur(5px);
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  min-height: 330px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 26px 28px;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 85% 12%, rgb(239 106 98 / 0.8), transparent 34%),
+    radial-gradient(circle at 10% 100%, rgb(165 122 200 / 0.8), transparent 40%),
+    var(--plum);
+  text-align: center;
+}
+
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.14);
+  color: #fff;
+}
+
+.close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--peach);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.panel h2 {
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(24px, 6vw, 32px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: rgb(255 255 255 / 0.72);
+  font-size: 13px;
+}
+
+.choices {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.choices button {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.choices button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgb(255 255 255 / 0.22);
+}
+
+.choices button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.choices svg,
+.revealDice svg {
+  width: 23px;
+  height: 23px;
+}
+
+.wheelWrap {
+  position: relative;
+  width: min(340px, 78vw);
+  aspect-ratio: 1;
+  margin-top: 20px;
+  padding: 3px;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.24);
+}
+
+.wheel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transition: transform 4s cubic-bezier(0.08, 0.72, 0.08, 1);
+}
+
+.wheel text {
+  fill: #241a2c;
+  paint-order: stroke;
+  stroke: rgb(255 255 255 / 0.75);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.pointer {
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-right: 14px solid transparent;
+  border-left: 14px solid transparent;
+  border-top: 24px solid #fff;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.35));
+}
+
+.hub {
+  fill: #fff;
+  stroke: var(--plum);
+  stroke-width: 3px;
+}
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.revealDice {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin-top: 10px;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.16);
+  animation: bounce 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+  to {
+    transform: translateY(-8px) rotate(12deg);
+  }
+}
+
+.close:focus-visible,
+.choices button:focus-visible {
+  outline: 3px solid var(--sun);
+  outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .panel {
+    min-height: 300px;
+    padding: 32px 18px 22px;
+  }
+
+  .wheelWrap {
+    width: min(310px, 78vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel {
+    transition: none;
+  }
+
+  .choices button,
+  .revealDice {
+    transition: none;
+    animation: none;
+  }
+}

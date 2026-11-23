@@ -21,7 +21,7 @@ interface SavedContext extends SavedState {
   inPlan(id: string): boolean;
   toggleFavorite(item: FeedItem): void;
   togglePlan(item: FeedItem): void;
-  /** Ask the feed to open a random idea (works from any page). */
+  /** Open the randomizer (works from any page). */
   requestRandom(): void;
 }
 
@@ -78,7 +78,7 @@ export function SavedProvider({ children }: { children: ReactNode }) {
       togglePlan: toggle("plan"),
       requestRandom: () => {
         if (window.location.pathname === "/") window.dispatchEvent(new Event("hvad:random"));
-        else router.push("/#random"); // the feed opens a random idea when it sees #random
+        else router.push("/#random"); // the home page opens the randomizer when it sees #random
       },
     };
   }, [state, loaded, update, router]);

@@ -9,6 +9,7 @@ import { buildCollections } from "./collection-rules";
 import { Collections } from "./Collections";
 import { EventCard } from "./EventCard";
 import { fitsMood, fitsWhen, mixKinds, MOODS, WHENS, type Calendar, type Mood, type When } from "./moods";
+import { Randomizer } from "./Randomizer";
 import styles from "./Frontpage.module.css";
 
 interface FrontpageProps {
@@ -33,6 +34,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(PAGE);
   const [open, setOpen] = useState<FeedItem | null>(null);
+  const [randomizerOpen, setRandomizerOpen] = useState(false);
   const { age, setAge } = useAgeGroup();
 
   // Any filter change starts the list from the top again.
@@ -42,6 +44,14 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
       set(v);
       setLimit(PAGE);
     };
+  const updateCategory = useCallback((next: FeedCategory | "all") => {
+    setCategory(next);
+    setLimit(PAGE);
+    const url = new URL(window.location.href);
+    if (next === "all") url.searchParams.delete("flokkur");
+    else url.searchParams.set("flokkur", next);
+    history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, []);
 
   const forAge = useMemo(() => (age === "all" ? items : items.filter((i) => fitsAgeGroup(i, age))), [items, age]);
   const inWhen = useMemo(() => forAge.filter((i) => fitsWhen(i, when, calendar)), [forAge, when, calendar]);
@@ -79,21 +89,40 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const groups =
     when === "helgin" ? groupByDay(shown, calendar) : [{ key: "all", heading: null, items: shown }];
 
-  const openRandom = useCallback(() => {
-    const pool = results.length ? results : inWhen;
-    if (pool.length) setOpen(pool[Math.floor(Math.random() * pool.length)]);
-  }, [results, inWhen]);
+  const openRandomizer = useCallback(() => setRandomizerOpen(true), []);
+
+  const chooseRandomCategory = useCallback((next: FeedCategory) => {
+    setMood(null);
+    setQuery("");
+    updateCategory(next);
+    setRandomizerOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [updateCategory]);
+
+  const openRandomItem = useCallback((item: FeedItem) => {
+    setRandomizerOpen(false);
+    setOpen(item);
+  }, []);
 
   // "Veldu fyrir mig" from the header (event) or from another page (#random).
   useEffect(() => {
-    const onRandom = () => openRandom();
+    const onRandom = () => openRandomizer();
     window.addEventListener("hvad:random", onRandom);
     if (window.location.hash === "#random") {
-      history.replaceState(null, "", "/");
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
       onRandom();
     }
     return () => window.removeEventListener("hvad:random", onRandom);
-  }, [openRandom]);
+  }, [openRandomizer]);
+
+  useEffect(() => {
+    const requestedCategory = new URLSearchParams(window.location.search).get("flokkur");
+    const match = CATEGORIES.find((candidate) => candidate.id === requestedCategory);
+    if (match) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- initialize from the requested home filter
+      setCategory(match.id);
+    }
+  }, []);
 
   const whenLabel = WHENS.find((w) => w.id === when)!.label.toLowerCase();
   const moodLabel = MOODS.find((m) => m.id === mood)?.label;
@@ -141,7 +170,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
               <small>{m.blurb}</small>
             </button>
           ))}
-          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandom}>
+          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandomizer}>
             <Icon name="dice" />
             <strong>Veldu fyrir mig</strong>
             <small>Komdu mér á óvart</small>
@@ -151,7 +180,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
 
       <div className={styles.toolbar}>
         <div className={styles.cats} role="group" aria-label="Flokkar">
-          <button type="button" aria-pressed={category === "all"} onClick={() => reset(setCategory)("all")}>
+          <button type="button" aria-pressed={category === "all"} onClick={() => updateCategory("all")}>
             Allt
           </button>
           {CATEGORIES.map((c) => (
@@ -159,7 +188,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
               key={c.id}
               type="button"
               aria-pressed={category === c.id}
-              onClick={() => reset(setCategory)(category === c.id ? "all" : c.id)}
+              onClick={() => updateCategory(category === c.id ? "all" : c.id)}
             >
               {c.label}
             </button>
@@ -199,10 +228,9 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
             type="button"
             onClick={() => {
               setMood(null);
-              setCategory("all");
+              updateCategory("all");
               setQuery("");
               setAge("all");
-              setLimit(PAGE);
             }}
           >
             Sýna allt
@@ -244,6 +272,13 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
       <p className={styles.updated}>Síðast uppfært {updatedLabel}.</p>
 
       <DetailDialog item={open} onClose={() => setOpen(null)} />
+      <Randomizer
+        open={randomizerOpen}
+        items={inWhen}
+        onClose={() => setRandomizerOpen(false)}
+        onChooseCategory={chooseRandomCategory}
+        onChooseItem={openRandomItem}
+      />
     </div>
   );
 }
