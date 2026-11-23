@@ -8,6 +8,8 @@ import styles from "./Randomizer.module.css";
 type Phase = "menu" | "spinning-category" | "category-selected" | "spinning-item";
 type Mode = "category" | "item";
 type WheelOption = { id: string; label: string };
+type WheelLabel = { text: string; fontSize: number };
+type TextMetricsRatio = { width: number; height: number };
 
 interface RandomizerProps {
   open: boolean;
@@ -150,6 +152,36 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
 
 function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: WheelOption) => void }) {
   const [rotation, setRotation] = useState(0);
+  const [labelLayouts, setLabelLayouts] = useState<Record<string, WheelLabel>>({});
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    document.fonts.ready.then(() => {
+      const svg = svgRef.current;
+      const context = document.createElement("canvas").getContext("2d");
+      if (cancelled || !svg || !context) return;
+
+      context.font = `700 100px ${window.getComputedStyle(svg).fontFamily}`;
+      const layouts = Object.fromEntries(
+        options.map((option) => {
+          const angle = (360 / options.length) * (Math.PI / 180);
+          const label = fitWheelLabel(option.label, angle, 176, 30, (text) => {
+            const metrics = context.measureText(text);
+            return {
+              width: metrics.width / 100,
+              height: (metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) / 100,
+            };
+          });
+          return [option.id, label];
+        }),
+      );
+      setLabelLayouts(layouts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [options]);
 
   useEffect(() => {
     if (options.length === 0) return;
@@ -172,6 +204,7 @@ function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: W
     <div className={styles.wheelWrap}>
       <span className={styles.pointer} aria-hidden="true" />
       <svg
+        ref={svgRef}
         className={styles.wheel}
         viewBox="0 0 400 400"
         role="img"
@@ -186,10 +219,12 @@ function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: W
           const x = 200 + Math.cos(radians) * labelRadius;
           const y = 200 + Math.sin(radians) * labelRadius;
           const textRotation = middle;
-          const label = fitWheelLabel(segment.option.label, (slice * Math.PI) / 180, labelRadius, 30);
+          const label =
+            labelLayouts[segment.option.id] ??
+            fitWheelLabel(segment.option.label, (slice * Math.PI) / 180, labelRadius, 30, estimateTextMetrics);
           return (
             <g key={segment.option.id}>
-              <path d={segment.path} fill={segment.color} stroke="white" strokeWidth="2" />
+              <path d={segment.path} fill={segment.color} />
               <text
                 x={x}
                 y={y}
@@ -204,6 +239,22 @@ function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: W
             </g>
           );
         })}
+        {options.length > 1 &&
+          options.map((_, index) => {
+            const point = pointAt(-90 + (index * 360) / options.length);
+            return (
+              <line
+                key={`separator-${index}`}
+                x1="200"
+                y1="200"
+                x2={point.x}
+                y2={point.y}
+                stroke="white"
+                strokeWidth="2"
+              />
+            );
+          })}
+        <circle cx="200" cy="200" r={WHEEL_RADIUS} fill="none" stroke="white" strokeWidth="6" />
         <circle cx="200" cy="200" r="20" className={styles.hub} />
       </svg>
     </div>
@@ -211,6 +262,7 @@ function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: W
 }
 
 const COLORS = ["#ef6a62", "#f7c858", "#61b99c", "#62a7d8", "#a57ac8", "#eb82a2", "#e8914f"];
+const WHEEL_RADIUS = 199;
 
 function wheelSegments(options: WheelOption[]) {
   const slice = 360 / options.length;
@@ -227,35 +279,47 @@ function wheelSegments(options: WheelOption[]) {
       color: COLORS[colorIndex],
       path:
         options.length === 1
-          ? "M 200 200 m -190 0 a 190 190 0 1 0 380 0 a 190 190 0 1 0 -380 0"
-          : `M 200 200 L ${startPoint.x} ${startPoint.y} A 190 190 0 ${largeArc} 1 ${endPoint.x} ${endPoint.y} Z`,
+          ? `M 200 200 m -${WHEEL_RADIUS} 0 a ${WHEEL_RADIUS} ${WHEEL_RADIUS} 0 1 0 ${WHEEL_RADIUS * 2} 0 a ${WHEEL_RADIUS} ${WHEEL_RADIUS} 0 1 0 -${WHEEL_RADIUS * 2} 0`
+          : `M 200 200 L ${startPoint.x} ${startPoint.y} A ${WHEEL_RADIUS} ${WHEEL_RADIUS} 0 ${largeArc} 1 ${endPoint.x} ${endPoint.y} Z`,
     };
   });
 }
 
-function pointAt(angle: number) {
+function pointAt(angle: number, radius = WHEEL_RADIUS) {
   const radians = (angle * Math.PI) / 180;
-  return { x: 200 + Math.cos(radians) * 190, y: 200 + Math.sin(radians) * 190 };
+  return { x: 200 + Math.cos(radians) * radius, y: 200 + Math.sin(radians) * radius };
 }
 
-function fitWheelLabel(text: string, angle: number, outerRadius: number, innerRadius: number) {
-  const maxFontSize = 32;
+function fitWheelLabel(
+  text: string,
+  angle: number,
+  outerRadius: number,
+  innerRadius: number,
+  measure: (text: string) => TextMetricsRatio,
+): WheelLabel {
   const minFontSize = 5;
-  const availableLength = outerRadius - innerRadius;
-  const fontSizeFor = (candidate: string) => {
-    const width = estimateTextWidth(candidate);
-    const radialLimit = availableLength / width;
-    const safety = 0.78;
-    const sliceLimit = (outerRadius * angle * safety) / (1 + width * angle * safety);
-    return Math.min(maxFontSize, radialLimit, sliceLimit);
+  const maxFontSizeFor = (candidate: string) => {
+    const metrics = measure(candidate);
+    let low = 0;
+    let high = (outerRadius - innerRadius) / metrics.width;
+    for (let i = 0; i < 24; i++) {
+      const fontSize = (low + high) / 2;
+      const textWidth = metrics.width * fontSize + 2;
+      const startRadius = outerRadius - textWidth;
+      const glyphHeight = metrics.height * fontSize + 2;
+      const sliceWidth = angle >= Math.PI * 2 - 0.001 ? Infinity : 2 * startRadius * Math.sin(angle / 2);
+      if (startRadius >= innerRadius && glyphHeight <= sliceWidth) low = fontSize;
+      else high = fontSize;
+    }
+    return low;
   };
 
   let fittedText = text;
-  let fontSize = fontSizeFor(fittedText);
+  let fontSize = maxFontSizeFor(fittedText);
   if (fontSize < minFontSize) {
     for (let length = text.length - 1; length > 0; length--) {
       const candidate = `${text.slice(0, length).trimEnd()}…`;
-      const candidateSize = fontSizeFor(candidate);
+      const candidateSize = maxFontSizeFor(candidate);
       if (candidateSize >= minFontSize) {
         fittedText = candidate;
         fontSize = candidateSize;
@@ -264,16 +328,17 @@ function fitWheelLabel(text: string, angle: number, outerRadius: number, innerRa
     }
   }
 
-  return { text: fittedText, fontSize: Math.max(3, fontSize) };
+  return { text: fittedText, fontSize: Math.max(3, fontSize * 0.9) };
 }
 
-function estimateTextWidth(text: string): number {
-  return [...text].reduce((width, character) => {
-    if (/\s/.test(character)) return width + 0.3;
-    if (/[ilIíìïÍ!.,:;'|]/.test(character)) return width + 0.32;
-    if (/[mwMW@%&]/.test(character)) return width + 0.82;
-    if (/[A-ZÁÉÍÓÚÝÞÆÖÐ]/.test(character)) return width + 0.68;
-    if (character === "…") return width + 0.78;
-    return width + 0.56;
+function estimateTextMetrics(text: string): TextMetricsRatio {
+  const width = [...text].reduce((total, character) => {
+    if (/\s/.test(character)) return total + 0.3;
+    if (/[ilIíìïÍ!.,:;'|]/.test(character)) return total + 0.32;
+    if (/[mwMW@%&]/.test(character)) return total + 0.82;
+    if (/[A-ZÁÉÍÓÚÝÞÆÖÐ]/.test(character)) return total + 0.68;
+    if (character === "…") return total + 0.78;
+    return total + 0.56;
   }, 0);
+  return { width, height: 0.8 };
 }
