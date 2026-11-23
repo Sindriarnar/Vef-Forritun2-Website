@@ -6,9 +6,8 @@ import { getMapRows, type MapRow } from "./queries";
  * Everything for the map page: one entry per place (venue), with the
  * things that are there. Runs on the server.
  *
- * A place gets a pin when we know its coordinates. Those come from the
- * sources themselves: tix.is (its venues all over the country),
- * happyhour.is, and the map codes on some sundlaugar.is pages. Pools
+ * A place gets a pin when we know its coordinates. They come from source
+ * data or the cached Geoapify lookup (`npm run geocode:events`). Places
  * without coordinates are still listed, just without a pin.
  */
 export async function getMapPlaces(): Promise<MapPlace[]> {

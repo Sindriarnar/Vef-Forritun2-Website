@@ -4,7 +4,7 @@ import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
  * The front page's two kinds of filter:
  *  - "Hvenær?" (when): Í dag, Í kvöld, Um helgina. Always one chosen.
  *  - "Stemning" (mood): Ókeypis, Stefnumót, Fjölskyldan, Rólegt, Fjör.
- *    Optional; picking one again turns it off.
+ *    Optional, and several can be on at once (see filters.ts).
  *
  * Moods are guessed from what the scraper already knows (kind, category,
  * tags, time, age limits). Nobody tags things "date night", so these are

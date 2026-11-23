@@ -1,15 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CATEGORIES, fitsAgeGroup, inCategory, type FeedCategory, type FeedItem } from "@/lib/feed-types";
+import { CATEGORIES, fitsAgeGroup, type FeedCategory, type FeedItem } from "@/lib/feed-types";
 import { AgeFilter, useAgeGroup } from "@/components/shared/AgeFilter";
 import { DetailDialog } from "@/components/shared/DetailDialog";
 import { Icon } from "@/components/shared/Icon";
 import { buildCollections } from "./collection-rules";
 import { Collections } from "./Collections";
 import { EventCard } from "./EventCard";
-import { fitsMood, fitsWhen, mixKinds, MOODS, WHENS, type Calendar, type Mood, type When } from "./moods";
-import { Randomizer } from "./Randomizer";
+import {
+  activeCount,
+  DAY_PARTS,
+  matches,
+  NO_FILTERS,
+  PRICES,
+  searchText,
+  TOGGLES,
+  type DayPart,
+  type Filters,
+} from "./filters";
+import { fitsWhen, mixKinds, MOODS, WHENS, type Calendar, type Mood, type When } from "./moods";
 import styles from "./Frontpage.module.css";
 
 interface FrontpageProps {
@@ -22,68 +32,80 @@ interface FrontpageProps {
 /** Cards shown at first, and how many more "Sýna fleiri" adds. */
 const PAGE = 24;
 
+/** Add `value` to the list, or take it out if it's already there. */
+const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+
 /**
- * The front page: pick when (Í dag / Í kvöld / Um helgina) and,
- * optionally, a mood (Ókeypis, Stefnumót...). Then narrow it by category
- * or search, and get a grid of cards to save or add to the plan.
+ * The front page: pick when (Í dag / Í kvöld / Um helgina), then narrow
+ * it down with any mix of filters (moods, categories, price, time of day,
+ * downtown, open now, deals, search; see filters.ts). Every option shows
+ * how many results it would give with the other filters, and options
+ * that would give nothing are greyed out.
  */
 export function Frontpage({ items, calendar, todayLabel, updatedLabel }: FrontpageProps) {
   const [when, setWhen] = useState<When>("idag");
-  const [mood, setMood] = useState<Mood | null>(null);
-  const [category, setCategory] = useState<FeedCategory | "all">("all");
-  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [open, setOpen] = useState<FeedItem | null>(null);
   const [randomizerOpen, setRandomizerOpen] = useState(false);
   const { age, setAge } = useAgeGroup();
 
   // Any filter change starts the list from the top again.
-  const reset =
-    <T,>(set: (v: T) => void) =>
-    (v: T) => {
-      set(v);
-      setLimit(PAGE);
-    };
-  const updateCategory = useCallback((next: FeedCategory | "all") => {
-    setCategory(next);
+  const update = (patch: Partial<Filters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
     setLimit(PAGE);
-    const url = new URL(window.location.href);
-    if (next === "all") url.searchParams.delete("flokkur");
-    else url.searchParams.set("flokkur", next);
-    history.replaceState(null, "", `${url.pathname}${url.search}`);
-  }, []);
+  };
+  const clearAll = () => {
+    setFilters(NO_FILTERS);
+    setLimit(PAGE);
+  };
 
+  const haystacks = useMemo(() => new Map(items.map((i) => [i.id, searchText(i)])), [items]);
   const forAge = useMemo(() => (age === "all" ? items : items.filter((i) => fitsAgeGroup(i, age))), [items, age]);
   const inWhen = useMemo(() => forAge.filter((i) => fitsWhen(i, when, calendar)), [forAge, when, calendar]);
   const collections = useMemo(() => buildCollections(forAge, calendar), [forAge, calendar]);
+  const active = activeCount(filters);
   // The curated rows are for browsing; once you filter or search, only the grid is shown.
-  const browsing = !mood && category === "all" && !query;
+  const browsing = active === 0;
+  // The extra filters in the panel (not moods, categories or search), for the badge on its button.
+  const panelActive = filters.times.length + (filters.price ? 1 : 0) + TOGGLES.filter((t) => filters[t.id]).length;
 
-  // How many each mood would give right now (shown on the tiles).
-  const moodCounts = useMemo(
-    () =>
-      Object.fromEntries(MOODS.map((m) => [m.id, inWhen.filter((i) => fitsMood(i, m.id)).length])) as Record<
-        Mood,
-        number
-      >,
-    [inWhen],
+  const matching = useMemo(
+    () => inWhen.filter((i) => matches(i, filters, haystacks.get(i.id) ?? "")),
+    [inWhen, filters, haystacks],
   );
 
+  // How many results each option would give if picked, with the other filters as they are.
+  const counts = useMemo(() => {
+    const count = (patch: Partial<Filters>) => {
+      const f = { ...filters, ...patch };
+      return inWhen.reduce((n, i) => n + (matches(i, f, haystacks.get(i.id) ?? "") ? 1 : 0), 0);
+    };
+    return {
+      // Moods add up (all must fit), so a mood's count is with it added.
+      mood: Object.fromEntries(
+        MOODS.map((m) => [m.id, count({ moods: filters.moods.includes(m.id) ? filters.moods : [...filters.moods, m.id] })]),
+      ) as Record<Mood, number>,
+      // Categories are either/or, so a category's count is that category alone.
+      category: Object.fromEntries(CATEGORIES.map((c) => [c.id, count({ categories: [c.id] })])) as Record<
+        FeedCategory,
+        number
+      >,
+      price: Object.fromEntries(PRICES.map((p) => [p.id, count({ price: p.id })])) as Record<number, number>,
+      time: Object.fromEntries(DAY_PARTS.map((t) => [t.id, count({ times: [t.id] })])) as Record<DayPart, number>,
+      toggle: Object.fromEntries(TOGGLES.map((t) => [t.id, count({ [t.id]: true })])) as Record<string, number>,
+    };
+  }, [inWhen, filters, haystacks]);
+
   const results = useMemo(() => {
-    const q = normalise(query);
-    const matching = inWhen.filter(
-      (i) =>
-        (!mood || fitsMood(i, mood)) &&
-        (category === "all" || inCategory(i, category)) &&
-        (!q || normalise(`${i.title} ${i.place} ${i.subtitle ?? ""} ${i.categoryLabel}`).includes(q)),
-    );
     if (when !== "helgin") return mixKinds(matching);
     // The weekend goes day by day, then what is on any day.
     return [
       ...calendar.weekend.flatMap((day) => mixKinds(matching.filter((i) => i.dayKey === day))),
       ...mixKinds(matching.filter((i) => !i.dayKey)),
     ];
-  }, [inWhen, mood, category, query, when, calendar]);
+  }, [matching, when, calendar]);
 
   const shown = results.slice(0, limit);
   const groups =
@@ -125,7 +147,33 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   }, []);
 
   const whenLabel = WHENS.find((w) => w.id === when)!.label.toLowerCase();
-  const moodLabel = MOODS.find((m) => m.id === mood)?.label;
+  // A chip for every filter that is on, each with its own "remove".
+  const chips: { key: string; label: string; remove: () => void }[] = [
+    ...filters.moods.map((m) => ({
+      key: `mood-${m}`,
+      label: MOODS.find((x) => x.id === m)!.label,
+      remove: () => update({ moods: filters.moods.filter((x) => x !== m) }),
+    })),
+    ...filters.categories.map((c) => ({
+      key: `cat-${c}`,
+      label: CATEGORIES.find((x) => x.id === c)!.label,
+      remove: () => update({ categories: filters.categories.filter((x) => x !== c) }),
+    })),
+    ...(filters.price
+      ? [{ key: "price", label: PRICES.find((p) => p.id === filters.price)!.label, remove: () => update({ price: null }) }]
+      : []),
+    ...filters.times.map((t) => ({
+      key: `time-${t}`,
+      label: DAY_PARTS.find((x) => x.id === t)!.label,
+      remove: () => update({ times: filters.times.filter((x) => x !== t) }),
+    })),
+    ...TOGGLES.filter((t) => filters[t.id]).map((t) => ({
+      key: t.id,
+      label: t.label,
+      remove: () => update({ [t.id]: false }),
+    })),
+    ...(filters.query.trim() ? [{ key: "query", label: `„${filters.query.trim()}“`, remove: () => update({ query: "" }) }] : []),
+  ];
 
   return (
     <div className={styles.frontpage}>
@@ -148,29 +196,36 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
               type="button"
               role="radio"
               aria-checked={when === w.id}
-              onClick={() => reset(setWhen)(w.id)}
+              onClick={() => {
+                setWhen(w.id);
+                setLimit(PAGE);
+              }}
             >
               {w.label}
             </button>
           ))}
         </div>
 
-        <div className={styles.moods} role="group" aria-label="Stemning">
-          {MOODS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={styles.mood}
-              data-mood={m.id}
-              aria-pressed={mood === m.id}
-              onClick={() => reset(setMood)(mood === m.id ? null : m.id)}
-            >
-              <span className={styles.moodCount}>{moodCounts[m.id]}</span>
-              <strong>{m.label}</strong>
-              <small>{m.blurb}</small>
-            </button>
-          ))}
-          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandomizer}>
+        <div className={styles.moods} role="group" aria-label="Stemning (veldu eina eða fleiri)">
+          {MOODS.map((m) => {
+            const on = filters.moods.includes(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className={styles.mood}
+                data-mood={m.id}
+                aria-pressed={on}
+                disabled={!on && counts.mood[m.id] === 0}
+                onClick={() => update({ moods: toggle(filters.moods, m.id) })}
+              >
+                <span className={styles.moodCount}>{on ? <Icon name="check" /> : counts.mood[m.id]}</span>
+                <strong>{m.label}</strong>
+                <small>{m.blurb}</small>
+              </button>
+            );
+          })}
+          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandom}>
             <Icon name="dice" />
             <strong>Veldu fyrir mig</strong>
             <small>Komdu mér á óvart</small>
@@ -179,33 +234,113 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
       </section>
 
       <div className={styles.toolbar}>
-        <div className={styles.cats} role="group" aria-label="Flokkar">
-          <button type="button" aria-pressed={category === "all"} onClick={() => updateCategory("all")}>
+        <div className={styles.cats} role="group" aria-label="Flokkar (veldu einn eða fleiri)">
+          <button
+            type="button"
+            aria-pressed={filters.categories.length === 0}
+            onClick={() => update({ categories: [] })}
+          >
             Allt
           </button>
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              aria-pressed={category === c.id}
-              onClick={() => updateCategory(category === c.id ? "all" : c.id)}
-            >
-              {c.label}
+          {CATEGORIES.map((c) => {
+            const on = filters.categories.includes(c.id);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                aria-pressed={on}
+                disabled={!on && counts.category[c.id] === 0}
+                onClick={() => update({ categories: toggle(filters.categories, c.id) })}
+              >
+                {on && <Icon name="check" />}
+                {c.label}
+                <span className={styles.optCount}>{counts.category[c.id]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className={styles.toolbarEnd}>
+          <label className={styles.search}>
+            <Icon name="search" />
+            <input
+              type="search"
+              placeholder="Leita…"
+              aria-label="Leita að viðburði, stað eða tilboði"
+              autoComplete="off"
+              value={filters.query}
+              onChange={(e) => update({ query: e.target.value })}
+            />
+          </label>
+          <button
+            type="button"
+            className={styles.filterButton}
+            aria-expanded={panelOpen}
+            aria-controls="more-filters"
+            onClick={() => setPanelOpen((o) => !o)}
+          >
+            <Icon name="more" />
+            Síur
+            {panelActive > 0 && <span className={styles.filterBadge}>{panelActive}</span>}
+          </button>
+        </div>
+      </div>
+
+      {panelOpen && (
+        <div id="more-filters" className={styles.panel}>
+          <FilterGroup label="Verð">
+            {PRICES.map((p) => {
+              const on = filters.price === p.id;
+              return (
+                <FilterOption
+                  key={p.id}
+                  label={p.label}
+                  count={counts.price[p.id]}
+                  on={on}
+                  onClick={() => update({ price: on ? null : p.id })}
+                />
+              );
+            })}
+          </FilterGroup>
+          <FilterGroup label="Tími dags">
+            {DAY_PARTS.map((t) => (
+              <FilterOption
+                key={t.id}
+                label={t.label}
+                count={counts.time[t.id]}
+                on={filters.times.includes(t.id)}
+                onClick={() => update({ times: toggle(filters.times, t.id) })}
+              />
+            ))}
+          </FilterGroup>
+          <FilterGroup label="Annað">
+            {TOGGLES.map((t) => (
+              <FilterOption
+                key={t.id}
+                label={t.label}
+                count={counts.toggle[t.id]}
+                on={filters[t.id]}
+                onClick={() => update({ [t.id]: !filters[t.id] })}
+              />
+            ))}
+          </FilterGroup>
+        </div>
+      )}
+
+      {chips.length > 0 && (
+        <div className={styles.chips} aria-label="Virkar síur">
+          {chips.map((chip) => (
+            <button key={chip.key} type="button" className={styles.chip} onClick={chip.remove} aria-label={`Fjarlægja síu: ${chip.label}`}>
+              {chip.label}
+              <Icon name="close" />
             </button>
           ))}
+          {chips.length > 1 && (
+            <button type="button" className={styles.clearAll} onClick={clearAll}>
+              Hreinsa allt
+            </button>
+          )}
         </div>
-        <label className={styles.search}>
-          <Icon name="search" />
-          <input
-            type="search"
-            placeholder="Leita…"
-            aria-label="Leita að viðburði, stað eða tilboði"
-            autoComplete="off"
-            value={query}
-            onChange={(e) => reset(setQuery)(e.target.value)}
-          />
-        </label>
-      </div>
+      )}
 
       <AgeFilter hidden={items.length - forAge.length} />
 
@@ -213,7 +348,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
 
       <div className={styles.resultsHead} aria-live="polite">
         <h2>
-          {moodLabel ?? "Allt"} <span>{whenLabel}</span>
+          {active ? "Síað" : "Allt"} <span>{whenLabel}</span>
         </h2>
         <p>
           {results.length} {results.length % 10 === 1 && results.length % 100 !== 11 ? "hugmynd" : "hugmyndir"}
@@ -223,13 +358,11 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
       {results.length === 0 ? (
         <div className={styles.empty}>
           <h3>Ekkert fannst</h3>
-          <p>Prófaðu annan dag, aðra stemningu eða annan flokk.</p>
+          <p>Prófaðu að taka af einhverja síu eða velja annan dag.</p>
           <button
             type="button"
             onClick={() => {
-              setMood(null);
-              updateCategory("all");
-              setQuery("");
+              clearAll();
               setAge("all");
             }}
           >
@@ -238,11 +371,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
         </div>
       ) : (
         groups.map((group, g) => (
-          <section
-            key={`${when}-${mood}-${category}-${group.key}`}
-            className={styles.group}
-            aria-label={group.heading ?? undefined}
-          >
+          <section key={`${when}-${group.key}`} className={styles.group} aria-label={group.heading ?? undefined}>
             {group.heading && (
               <h3 className={styles.dayHeading}>
                 {group.heading}
@@ -283,6 +412,25 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   );
 }
 
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className={styles.panelGroup} role="group" aria-label={label}>
+      <span className={styles.panelLabel}>{label}</span>
+      <div className={styles.panelOptions}>{children}</div>
+    </div>
+  );
+}
+
+function FilterOption({ label, count, on, onClick }: { label: string; count: number; on: boolean; onClick: () => void }) {
+  return (
+    <button type="button" aria-pressed={on} disabled={!on && count === 0} onClick={onClick}>
+      {on && <Icon name="check" />}
+      {label}
+      <span className={styles.optCount}>{count}</span>
+    </button>
+  );
+}
+
 /** Split the weekend list into one section per day (and one for "any day"). */
 function groupByDay(shown: FeedItem[], calendar: Calendar) {
   const days = calendar.weekend.map((day) => ({
@@ -293,16 +441,4 @@ function groupByDay(shown: FeedItem[], calendar: Calendar) {
   return [...days, { key: "any", heading: "Hvenær sem er um helgina", items: shown.filter((i) => !i.dayKey) }].filter(
     (g) => g.items.length > 0,
   );
-}
-
-/** Lowercase without accents, so "sundholl" finds "Sundhöll". */
-function normalise(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ð/g, "d")
-    .replace(/þ/g, "th")
-    .replace(/æ/g, "ae")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .trim();
 }

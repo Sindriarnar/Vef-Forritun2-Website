@@ -108,6 +108,17 @@
   background: var(--bg-2);
 }
 
+.map-geocoding-attribution {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.map-geocoding-attribution a {
+  text-decoration: underline;
+}
+
 .map-pin span {
   display: block;
   width: 18px;

@@ -197,9 +197,8 @@ export async function getMovieDays(): Promise<MovieDay[]> {
 }
 
 function mergeMovies(rows: ShowtimeQueryRow[], ratings: Map<string, AgeColumns>): Movie[] {
-  // Lower number = preferred. Cinemas' own sites first for showtimes,
-  // kvikmyndir.is first for the movie title/poster (Icelandic titles).
-  const showtimeRank = (source: string) => (source === "Kvikmyndir.is" ? 1 : 0);
+  // Lower number = preferred: kvikmyndir.is wins duplicate showtimes.
+  const showtimeRank = (source: string) => (source === "Kvikmyndir.is" ? 0 : 1);
   const infoRank = (source: string) => (source === "Kvikmyndir.is" ? 0 : 1);
   rows.sort((a, b) => showtimeRank(a.source_name) - showtimeRank(b.source_name));
 
@@ -234,7 +233,7 @@ function mergeMovies(rows: ShowtimeQueryRow[], ratings: Map<string, AgeColumns>)
     movie.image_url ??= row.image_url;
     movie.subtitle ??= row.subtitle;
 
-    const showtimeKey = `${key}|${row.starts_at}|${row.venue_name}`;
+    const showtimeKey = `${key}|${row.starts_at}|${venueKey(row.venue_name)}`;
     if (seenShowtimes.has(showtimeKey)) continue;
     seenShowtimes.add(showtimeKey);
     movie.showtimes.push({ startsAt: row.starts_at, venue: row.venue_name, url: row.url, note: row.note });
@@ -257,6 +256,23 @@ function mergeMovies(rows: ShowtimeQueryRow[], ratings: Map<string, AgeColumns>)
 function movieKey(row: ShowtimeQueryRow, known: Map<string, unknown>): string {
   if (!row.match_key) return `item-${row.item_id}`;
   return altTitleKeys(row.title).find((key) => key !== row.match_key && known.has(key)) ?? row.match_key;
+}
+
+/** Normalize cinema names so source-specific variants collide correctly. */
+function venueKey(name: string | null): string {
+  if (!name) return "";
+  const normalised = name
+    .toLowerCase()
+    .replace(/ð/g, "d")
+    .replace(/þ/g, "th")
+    .replace(/æ/g, "ae")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+  if (/^(smarabio|sambioin smarabio)$/.test(normalised)) return "smarabio";
+  return normalised;
 }
 
 /** Upcoming events, one row per event with its next date (for the front page). */

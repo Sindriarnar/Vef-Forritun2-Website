@@ -187,6 +187,11 @@ export function PlacesMap({ places: allPlaces }: { places: MapPlace[] }) {
         </div>
         <div className="map-canvas" ref={container} aria-label="Kort af Íslandi með stöðum" />
       </div>
+      <p className="map-geocoding-attribution">
+        <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">
+          Powered by Geoapify
+        </a>
+      </p>
     </>
   );
 }

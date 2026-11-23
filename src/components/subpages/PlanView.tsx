@@ -23,18 +23,14 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
   const planItems = sortByTime(Object.values(plan));
   const favoriteItems = Object.values(favorites);
   const empty = loaded && planItems.length === 0;
-  const outings = (
-    <div className="plan-section">
-      <Outings items={items} today={today} tomorrow={tomorrow} now={now} onOpen={setOpen} />
-    </div>
-  );
 
+  
   return (
     <>
       <div className="page-head plan-head">
         <h1>Planið</h1>
         {empty ? (
-          // Nothing planned yet: one line, and the ready-made plans right below.
+          // Nothing planned yet: one line instead of an empty list.
           <p>
             Ekkert á planinu enn. Veldu tilbúið plan eða ýttu á + við eitthvað á <Link href="/">forsíðunni</Link>.
           </p>
@@ -42,8 +38,6 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
           <p>Geymist bara í þessum vafra.</p>
         )}
       </div>
-
-      {empty && outings}
 
       {!empty && (
         <section className="plan-section" aria-labelledby="plan-heading">
@@ -72,8 +66,6 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
         </section>
       )}
 
-      {!empty && outings}
-
       <section className="plan-section" id="vistad" aria-labelledby="saved-heading">
         <h2 id="saved-heading" className="section-title">
           Vistað <span>{loaded ? favoriteItems.length : ""}</span>
@@ -90,6 +82,10 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
           </ul>
         )}
       </section>
+
+      <div className="plan-section">
+        <Outings items={items} today={today} tomorrow={tomorrow} now={now} onOpen={setOpen} />
+      </div>
 
       <DetailDialog item={open} onClose={() => setOpen(null)} />
     </>

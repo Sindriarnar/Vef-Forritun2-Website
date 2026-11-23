@@ -1,6 +1,7 @@
 import type { ScrapedItem, Source } from "../types";
 import { ageInfo, ageLimitIn, mentionsAlcohol, welcomesKids } from "../lib/ages";
 import { findJsonValues, readFlightData } from "../lib/flight";
+import { inIceland } from "../lib/geo";
 import { clean, normaliseIso } from "../lib/text";
 
 /**
@@ -29,6 +30,12 @@ interface LibraryEvent {
   categories?: { name: string }[];
 }
 
+interface LibraryLocation {
+  value: string;
+  latitude: number;
+  longitude: number;
+}
+
 export const borgarbokasafn: Source = {
   slug: "borgarbokasafn",
   name: "Borgarbókasafnið",
@@ -40,8 +47,15 @@ export const borgarbokasafn: Source = {
 };
 
 export function parseLibraryEvents(html: string, now: Date): ScrapedItem[] {
-  const [events] = [...findJsonValues<LibraryEvent[]>(readFlightData(html), "initialEvents", "[")];
+  const flight = readFlightData(html);
+  const [events] = [...findJsonValues<LibraryEvent[]>(flight, "initialEvents", "[")];
   if (!events) throw new Error("Borgarbókasafnið: initialEvents not found — page layout changed?");
+
+  const locations = new Map<string, { lat: number; lng: number }>();
+  for (const location of [...findJsonValues<LibraryLocation[]>(flight, "locations", "[")].flat()) {
+    const coords = { lat: Number(location.latitude), lng: Number(location.longitude) };
+    if (location.value && inIceland(coords)) locations.set(clean(location.value), coords);
+  }
 
   // A repeating event has one row per date; group them by `parent`.
   const items = new Map<string, ScrapedItem>();
@@ -84,7 +98,11 @@ export function parseLibraryEvents(html: string, now: Date): ScrapedItem[] {
       imageUrl: event.image?.original?.url ?? event.image?.thumbnail?.url ?? null,
       provider: "Borgarbókasafnið",
       venue,
-      venueDetails: { address: clean(event.address) || null },
+      venueDetails: {
+        address: clean(event.address) || null,
+        lat: locations.get(venue ?? "")?.lat ?? null,
+        lng: locations.get(venue ?? "")?.lng ?? null,
+      },
       tags: categories,
       ...ages,
       occurrences: [occurrence],
