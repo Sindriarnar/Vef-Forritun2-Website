@@ -1,6 +1,12 @@
 // Simple line icons (24x24, stroke = currentColor).
 
 const PATHS = {
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+    </>
+  ),
   dice: (
     <>
       <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
