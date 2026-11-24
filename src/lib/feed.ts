@@ -132,7 +132,7 @@ export function eventToItem(event: EventRow): FeedItem {
       times > 1 ? `${times} tímar þennan dag` : event.date_count > 1 ? `${event.date_count} dagsetningar` : null,
     title: event.title,
     subtitle: event.subtitle,
-    description: null,
+    description: event.description,
     imageUrl: event.image_url,
     url: event.item_url,
     sourceName: event.source_name,

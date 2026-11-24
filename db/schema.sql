@@ -167,6 +167,7 @@ SELECT
   i.title,
   i.match_key,
   i.subtitle,
+  i.description,
   i.url                         AS item_url,
   COALESCE(o.url, i.url)        AS url,
   i.image_url,
