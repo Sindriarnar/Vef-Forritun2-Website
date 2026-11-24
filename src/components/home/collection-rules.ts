@@ -1,6 +1,6 @@
 import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
 import { isDowntown, priceValue } from "@/lib/item-utils";
-import { fitsWhen, mixKinds, type Calendar } from "./moods";
+import { fitsWhen, isEvening, mixKinds, onWeekend, type Calendar } from "./moods";
 
 /**
  * Hand-picked rows above the main grid ("Helgin undir 5.000 kr.",
@@ -34,7 +34,7 @@ const RULES: Rule[] = [
     title: "Kvöld í miðbænum",
     blurb: "Happy hour, matur og sýningar í göngufæri hvert frá öðru",
     tone: "plum",
-    pick: (items, cal) => mixKinds(items.filter((i) => fitsWhen(i, "ikvold", cal) && isDowntown(i) && i.audience !== "born")),
+    pick: (items, cal) => mixKinds(items.filter((i) => fitsWhen(i, cal.today, cal) && isEvening(i) && isDowntown(i) && i.audience !== "born")),
   },
   {
     id: "helgin-5000",
@@ -47,7 +47,7 @@ const RULES: Rule[] = [
           const price = priceValue(i);
           return (
             (i.kind === "event" || i.kind === "activity" || i.kind === "deal") &&
-            fitsWhen(i, "helgin", cal) &&
+            onWeekend(i, cal) &&
             price != null &&
             price <= 5000
           );
@@ -74,7 +74,7 @@ const RULES: Rule[] = [
     title: "Tónleikar helgarinnar",
     blurb: "Frá sinfóníunni til bílskúrsbanda",
     tone: "pink",
-    pick: (items, cal) => items.filter((i) => i.music && fitsWhen(i, "helgin", cal)).sort(byTime),
+    pick: (items, cal) => items.filter((i) => i.music && onWeekend(i, cal)).sort(byTime),
   },
   {
     id: "fjolskyldan",
@@ -83,7 +83,7 @@ const RULES: Rule[] = [
     tone: "sea",
     pick: (items, cal) =>
       items
-        .filter((i) => (i.kind === "event" || i.kind === "activity") && fitsAgeGroup(i, "fjolskylda") && fitsWhen(i, "helgin", cal))
+        .filter((i) => (i.kind === "event" || i.kind === "activity") && fitsAgeGroup(i, "fjolskylda") && onWeekend(i, cal))
         .sort(byTime),
   },
   {

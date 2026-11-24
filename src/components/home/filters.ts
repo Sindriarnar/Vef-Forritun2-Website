@@ -1,6 +1,6 @@
 import { inCategory, type FeedCategory, type FeedItem } from "@/lib/feed-types";
 import { isDowntown, priceValue } from "@/lib/item-utils";
-import { fitsMood, type Mood } from "./moods";
+import { fitsMood, isEvening, type Mood } from "./moods";
 
 /**
  * The front page's filters. They combine, so each one you add narrows
@@ -10,10 +10,11 @@ import { fitsMood, type Mood } from "./moods";
  *  - Flokkar (categories): pick several and an item may be in *any* of
  *    them (Bíó + Tónlist = movies and concerts), since an item is only
  *    ever in one category.
- *  - Verð, Tími dags, Miðbærinn, Opið núna, Á tilboði and the search box
- *    each narrow it further.
- * "Hvenær?" (Í dag / Í kvöld / Um helgina) and the age filter are applied
- * before these, see Frontpage.
+ *  - Verð, Tími dags, Í kvöld, Miðbærinn, Opið núna, Á tilboði and the
+ *    search box each narrow it further. "Í kvöld" is the evening of
+ *    whichever day is picked.
+ * "Hvenær?" (the day) and the age filter are applied before these, see
+ * Frontpage.
  */
 
 export type PriceCap = 2000 | 5000 | 10000;
@@ -24,6 +25,7 @@ export interface Filters {
   categories: FeedCategory[];
   price: PriceCap | null;
   times: DayPart[];
+  tonight: boolean;
   downtown: boolean;
   openNow: boolean;
   deals: boolean;
@@ -35,6 +37,7 @@ export const NO_FILTERS: Filters = {
   categories: [],
   price: null,
   times: [],
+  tonight: false,
   downtown: false,
   openNow: false,
   deals: false,
@@ -54,7 +57,8 @@ export const DAY_PARTS: { id: DayPart; label: string; from: string; to: string }
 ];
 
 /** The on/off filters, in the order they are shown. */
-export const TOGGLES: { id: "downtown" | "openNow" | "deals"; label: string }[] = [
+export const TOGGLES: { id: "tonight" | "downtown" | "openNow" | "deals"; label: string }[] = [
+  { id: "tonight", label: "Í kvöld" },
   { id: "openNow", label: "Opið / í gangi núna" },
   { id: "downtown", label: "Í miðbænum" },
   { id: "deals", label: "Á tilboði" },
@@ -67,6 +71,7 @@ export function activeCount(f: Filters): number {
     f.categories.length +
     f.times.length +
     (f.price ? 1 : 0) +
+    (f.tonight ? 1 : 0) +
     (f.downtown ? 1 : 0) +
     (f.openNow ? 1 : 0) +
     (f.deals ? 1 : 0) +
@@ -88,6 +93,7 @@ export function matches(item: FeedItem, f: Filters, haystack: string): boolean {
     if (price === null || price >= f.price) return false;
   }
   if (f.times.length && !f.times.some((t) => inDayPart(item, t))) return false;
+  if (f.tonight && !isEvening(item)) return false;
   if (f.downtown && !isDowntown(item)) return false;
   if (f.openNow && !item.isLive) return false;
   if (f.deals && !onDeal(item)) return false;

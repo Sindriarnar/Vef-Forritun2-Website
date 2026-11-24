@@ -2,8 +2,8 @@ import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
 
 /**
  * The front page's two kinds of filter:
- *  - "Hvenær?" (when): one of the next seven days (today first), Í kvöld
- *    or Um helgina. Always one chosen; today by default.
+ *  - "Hvenær?" (when): one of the next seven days (today first). Always
+ *    one chosen; today by default. ("Í kvöld" is a filter, see filters.ts.)
  *  - "Stemning" (mood): Ókeypis, Stefnumót, Fjölskyldan, Rólegt, Fjör.
  *    Optional, and several can be on at once (see filters.ts).
  *
@@ -12,15 +12,9 @@ import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
  * rules of thumb: easy to tweak below.
  */
 
-/** A day ("2026-11-23", see Calendar.days), tonight, or the weekend. */
+/** A day: "2026-11-23", see Calendar.days. */
 export type When = string;
 export type Mood = "okeypis" | "stefnumot" | "fjolskyldan" | "rolegt" | "fjor";
-
-/** The picks shown after the days. */
-export const WHENS: { id: When; label: string }[] = [
-  { id: "ikvold", label: "Í kvöld" },
-  { id: "helgin", label: "Um helgina" },
-];
 
 export const MOODS: { id: Mood; label: string; blurb: string }[] = [
   { id: "okeypis", label: "Ókeypis", blurb: "Kostar ekki krónu" },
@@ -52,27 +46,40 @@ const CALM = /sýning|safn|klassík|kammer|kór|bókmennt|ljóð|jazz|djass|blú
 const LOUD = /rokk|popp|rapp|diskó|uppistand|dægurl|experimental|tribute|partí|dj/i;
 const DATE = /leikhús|tónleik|tónlist|uppistand|jazz|djass|óper|söngleik|klassík|sinfón/i;
 
+/**
+ * Is the item on this day (00:00–24:00)? Dated things (events, movies, the
+ * coming days' places) are on their own day. Deals and ideas are any day.
+ * Places without a date are today's list; late in the evening that list
+ * has tomorrow's opening ("Á morgun kl. 10:00"), which isn't today's.
+ */
 export function fitsWhen(item: FeedItem, when: When, cal: Calendar): boolean {
   const day = item.dayKey ?? null;
-  switch (when) {
-    case "ikvold": {
-      if (item.kind === "happy_hour" || item.kind === "restaurant") return day === null;
-      if (item.kind === "movie") return day === cal.today && (item.showtimes ?? []).some((s) => s.time >= EVENING);
-      if (item.kind === "event") return day === cal.today && (hour(item) ?? "") >= EVENING;
-      return false;
-    }
-    case "helgin":
-      // Weekend events and movies; plus things that are on any day anyway
-      // (places once, from today's list, not once for every weekend day).
-      if (item.kind === "event") return day !== null && cal.weekend.includes(day);
-      if (item.kind === "movie") return day !== null && cal.weekend.includes(day);
-      return day === null && (item.kind === "activity" || item.kind === "deal" || item.kind === "idea" || item.kind === "pool");
-    default:
-      // One day: what is on that day. Deals and ideas are any day; places
-      // without a date are today's list (their next opening).
-      if (day !== null) return day === when;
-      return !PLACES.includes(item.kind) || when === cal.today;
-  }
+  if (day !== null) return day === when;
+  if (!PLACES.includes(item.kind)) return true;
+  return when === cal.today && item.dayLabel !== "á morgun";
+}
+
+/**
+ * Something for the evening of its day (the "Í kvöld" filter): events that
+ * start at 17:00 or later, movies with a showing then, happy hours and
+ * restaurants. Pools, activities, deals and ideas are left out.
+ */
+export function isEvening(item: FeedItem): boolean {
+  if (item.kind === "happy_hour" || item.kind === "restaurant") return true;
+  if (item.kind === "movie") return (item.showtimes ?? []).some((s) => s.time >= EVENING);
+  if (item.kind === "event") return (hour(item) ?? "") >= EVENING;
+  return false;
+}
+
+/**
+ * For the weekend rows above the grid: weekend events and movies, plus
+ * things that are on any day anyway (places once, from today's list, not
+ * once for every weekend day).
+ */
+export function onWeekend(item: FeedItem, cal: Calendar): boolean {
+  const day = item.dayKey ?? null;
+  if (item.kind === "event" || item.kind === "movie") return day !== null && cal.weekend.includes(day);
+  return day === null && (item.kind === "activity" || item.kind === "deal" || item.kind === "idea" || item.kind === "pool");
 }
 
 export function fitsMood(item: FeedItem, mood: Mood): boolean {
