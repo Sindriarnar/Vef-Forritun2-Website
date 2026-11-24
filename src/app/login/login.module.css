@@ -1,0 +1,21 @@
+.form {
+  display: grid;
+  gap: 14px;
+  max-width: 360px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.field input {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--bg-1);
+  font-weight: 400;
+}
