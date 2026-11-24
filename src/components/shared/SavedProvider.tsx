@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FeedItem } from "@/lib/feed-types";
 
 /**
@@ -31,34 +31,55 @@ const Context = createContext<SavedContext | null>(null);
 
 export function SavedProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SavedState>(EMPTY);
+  const stateRef = useRef(state);
   const [loaded, setLoaded] = useState(false);
   const router = useRouter();
 
   // Read after mount (localStorage doesn't exist on the server).
   useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY && event.key !== null) return;
+      try {
+        if (event.storageArea !== localStorage) return;
+        const next = parseSavedState(event.newValue);
+        stateRef.current = next;
+        setState(next);
+      } catch {
+        // Ignore malformed updates or blocked storage.
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SavedState>;
+        const parsed = parseSavedState(raw);
+        stateRef.current = parsed;
         // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time load from localStorage
-        setState({ favorites: parsed.favorites ?? {}, plan: parsed.plan ?? {} });
+        setState(parsed);
       }
     } catch {
       // Private mode / blocked storage: start empty, keep working in memory.
     }
     setLoaded(true);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const update = useCallback((change: (s: SavedState) => SavedState) => {
-    setState((previous) => {
-      const next = change(previous);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore: saving is a convenience, the page still works.
-      }
-      return next;
-    });
+    let current = stateRef.current;
+    try {
+      current = parseSavedState(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      // Keep using in-memory state when storage is unavailable.
+    }
+    const next = change(current);
+    stateRef.current = next;
+    setState(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Ignore: saving is a convenience, the page still works.
+    }
   }, []);
 
   const value = useMemo<SavedContext>(() => {
@@ -90,4 +111,10 @@ export function useSaved(): SavedContext {
   const value = useContext(Context);
   if (!value) throw new Error("useSaved must be used inside <SavedProvider>");
   return value;
+}
+
+function parseSavedState(raw: string | null): SavedState {
+  if (!raw) return EMPTY;
+  const parsed = JSON.parse(raw) as Partial<SavedState>;
+  return { favorites: parsed.favorites ?? {}, plan: parsed.plan ?? {} };
 }
