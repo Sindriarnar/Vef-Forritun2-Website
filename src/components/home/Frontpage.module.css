@@ -90,20 +90,60 @@
 
 .when {
   display: inline-flex;
+  align-items: stretch;
   gap: 4px;
+  max-width: 100%;
   margin-top: 26px;
   padding: 4px;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.12);
   backdrop-filter: blur(6px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.when::-webkit-scrollbar {
+  display: none;
 }
 
 .when button {
+  flex: none;
   padding: 9px 18px;
   border-radius: 999px;
   color: rgb(255 255 255 / 0.85);
   font-weight: 700;
+  white-space: nowrap;
   transition: background 0.2s, color 0.2s;
+}
+
+/* A day in the picker: "fim" over "í dag" / "27. nóv". */
+.when .day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 62px;
+  padding: 5px 12px;
+  line-height: 1.1;
+}
+
+.day strong {
+  font-size: 15px;
+  text-transform: capitalize;
+}
+
+.day small {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.whenDivider {
+  flex: none;
+  width: 1px;
+  margin: 6px 4px;
+  background: rgb(255 255 255 / 0.25);
 }
 
 .when button:hover {
@@ -623,17 +663,21 @@
     display: none;
   }
 
+  /* The days scroll sideways (today is first, so it is always in view at the start). */
   .when {
     display: flex;
     margin-top: 14px;
   }
 
   .when button {
-    flex: 1;
     min-height: 40px;
-    padding: 0 6px;
-    white-space: nowrap;
+    padding: 0 12px;
     font-size: 14px;
+  }
+
+  .when .day {
+    min-width: 54px;
+    padding: 4px 8px;
   }
 
   .moods {

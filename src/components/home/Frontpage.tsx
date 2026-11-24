@@ -24,7 +24,7 @@ import { fitsWhen, mixKinds, MOODS, WHENS, type Calendar, type Mood, type When }
 import styles from "./Frontpage.module.css";
 
 interface FrontpageProps {
-  items: FeedItem[]; // today's feed plus the weekend's events
+  items: FeedItem[]; // today's feed plus the coming week's events, movies and places
   calendar: Calendar;
   todayLabel: string; // "föstudagur 13. nóvember"
   updatedLabel: string; // "í dag kl. 13:47"
@@ -37,14 +37,15 @@ const PAGE = 24;
 const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
 /**
- * The front page: pick when (Í dag / Í kvöld / Um helgina), then narrow
+ * The front page: pick when (a day of the coming week, today by default,
+ * or Í kvöld / Um helgina), then narrow
  * it down with any mix of filters (moods, categories, price, time of day,
  * downtown, open now, deals, search; see filters.ts). Every option shows
  * how many results it would give with the other filters, and options
  * that would give nothing are greyed out.
  */
 export function Frontpage({ items, calendar, todayLabel, updatedLabel }: FrontpageProps) {
-  const [when, setWhen] = useState<When>("idag");
+  const [when, setWhen] = useState<When>(calendar.today);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [panelOpen, setPanelOpen] = useState(false);
   const [limit, setLimit] = useState(PAGE);
@@ -76,10 +77,16 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const haystacks = useMemo(() => new Map(items.map((i) => [i.id, searchText(i)])), [items]);
   const forAge = useMemo(() => (age === "all" ? items : items.filter((i) => fitsAgeGroup(i, age))), [items, age]);
   const inWhen = useMemo(() => forAge.filter((i) => fitsWhen(i, when, calendar)), [forAge, when, calendar]);
-  const collections = useMemo(() => buildCollections(forAge, calendar), [forAge, calendar]);
+  // The curated rows are about today and the weekend, so they are made from those
+  // items only, and not shown when a later day is picked.
+  const collections = useMemo(
+    () => buildCollections(forAge.filter((i) => fitsWhen(i, calendar.today, calendar) || fitsWhen(i, "helgin", calendar)), calendar),
+    [forAge, calendar],
+  );
   const active = activeCount(filters);
+  const laterDay = when !== calendar.today && !WHENS.some((w) => w.id === when);
   // The curated rows are for browsing; once you filter or search, only the grid is shown.
-  const browsing = active === 0;
+  const browsing = active === 0 && !laterDay;
   // The extra filters in the panel (not moods, categories or search), for the badge on its button.
   const panelActive = filters.times.length + (filters.price ? 1 : 0) + TOGGLES.filter((t) => filters[t.id]).length;
 
@@ -158,7 +165,11 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
     }
   }, []);
 
-  const whenLabel = WHENS.find((w) => w.id === when)!.label.toLowerCase();
+  const whenLabel = (WHENS.find((w) => w.id === when)?.label ?? calendar.days.find((d) => d.key === when)?.label ?? "").toLowerCase();
+  const pickWhen = (id: When) => {
+    setWhen(id);
+    setLimit(PAGE);
+  };
   // A chip for every filter that is on, each with its own "remove".
   const chips: { key: string; label: string; remove: () => void }[] = [
     ...filters.moods.map((m) => ({
@@ -202,17 +213,23 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
         </h1>
 
         <div className={styles.when} role="radiogroup" aria-label="Hvenær?">
-          {WHENS.map((w) => (
+          {calendar.days.map((d) => (
             <button
-              key={w.id}
+              key={d.key}
               type="button"
               role="radio"
-              aria-checked={when === w.id}
-              onClick={() => {
-                setWhen(w.id);
-                setLimit(PAGE);
-              }}
+              className={styles.day}
+              aria-checked={when === d.key}
+              aria-label={calendar.headings[d.key]}
+              onClick={() => pickWhen(d.key)}
             >
+              <strong>{d.weekday}</strong>
+              <small>{d.note}</small>
+            </button>
+          ))}
+          <span className={styles.whenDivider} aria-hidden="true" />
+          {WHENS.map((w) => (
+            <button key={w.id} type="button" role="radio" aria-checked={when === w.id} onClick={() => pickWhen(w.id)}>
               {w.label}
             </button>
           ))}

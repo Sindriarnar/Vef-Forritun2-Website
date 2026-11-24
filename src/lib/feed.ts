@@ -6,6 +6,7 @@ import {
   getIdeas,
   getMovieDays,
   getOpenSoon,
+  getPlaceDays,
   getUpcomingEvents,
   type DealRow,
   type EventRow,
@@ -163,7 +164,11 @@ const PLACE_KIND = {
   activity: { category: "afthreying", label: "Afþreying" },
 } as const;
 
-export function placeToItem(place: OpenPlace): FeedItem {
+/**
+ * A place with its current or next slot (today's list), or, given `day`
+ * ("2026-11-27"), its first slot on that coming day (the day picker).
+ */
+export function placeToItem(place: OpenPlace, day?: string): FeedItem {
   const kind = PLACE_KIND[place.category];
   const until = formatTime(place.ends_at);
   const from = formatTime(place.starts_at);
@@ -171,7 +176,13 @@ export function placeToItem(place: OpenPlace): FeedItem {
   const tomorrow = place.is_tomorrow === 1;
   // "Opið allan daginn" is stored as a slot from midnight to midnight.
   const allDay = from === "00:00" && until === "00:00";
-  const whenLabel = allDay
+  const whenLabel = day
+    ? allDay
+      ? "Opið allan daginn"
+      : happyHour
+        ? `Kl. ${from}–${until}`
+        : `Opið ${from}–${until}`
+    : allDay
     ? tomorrow
       ? "Opið allan daginn á morgun"
       : "Opið allan daginn"
@@ -193,7 +204,8 @@ export function placeToItem(place: OpenPlace): FeedItem {
   const label = tags.includes("Sýning") ? "Sýning" : tags.includes("Verslun") ? "Verslun" : kind.label;
 
   return {
-    id: `${place.category}-${place.item_id}`,
+    // Today's id has no date, so things saved before stay recognised.
+    id: day ? `${place.category}-${place.item_id}-${day}` : `${place.category}-${place.item_id}`,
     kind: restaurant ? "restaurant" : place.category,
     category: restaurant ? "matur" : kind.category,
     categoryLabel: restaurant ? "Veitingastaður" : label,
@@ -216,7 +228,8 @@ export function placeToItem(place: OpenPlace): FeedItem {
     isLive: place.is_open_now === 1 && !allDay,
     startsAt: place.starts_at,
     timeLabel: allDay ? "Allan daginn" : `${from}–${until}`,
-    dayLabel: tomorrow ? "á morgun" : "í dag",
+    dayKey: day ?? null,
+    dayLabel: day ? formatDay(`${day}T00:00:00Z`) : tomorrow ? "á morgun" : "í dag",
     minAge: place.min_age,
     audience: place.audience,
     lat: place.lat,
@@ -290,8 +303,25 @@ export async function getFeed(): Promise<FeedItem[]> {
   return [
     ...interleave([deals.map(dealToItem), events.map(eventToItem)]),
     ...movies,
-    ...places.map(placeToItem),
+    ...places.map((place) => placeToItem(place)),
     ...shuffleForToday(ideas.map(ideaToItem)),
+  ];
+}
+
+/**
+ * Movies and places (pools, happy hours, activities, restaurants) on the
+ * coming days, tomorrow up to `daysAhead` days from now, one post per
+ * day, for the front page's day picker. Events come from getEventItems.
+ */
+export async function getComingDays(daysAhead: number): Promise<FeedItem[]> {
+  const [movieDays, places] = await Promise.all([
+    getMovieDays(daysAhead),
+    getPlaceDays(["happy_hour", "pool", "activity"], daysAhead),
+  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  return [
+    ...movieDays.filter((d) => d.day !== today).flatMap((d) => d.movies.map((movie) => movieToItem(movie, d.day))),
+    ...places.map((place) => placeToItem(place, place.starts_at.slice(0, 10))),
   ];
 }
 

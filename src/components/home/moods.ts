@@ -2,7 +2,8 @@ import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
 
 /**
  * The front page's two kinds of filter:
- *  - "Hvenær?" (when): Í dag, Í kvöld, Um helgina. Always one chosen.
+ *  - "Hvenær?" (when): one of the next seven days (today first), Í kvöld
+ *    or Um helgina. Always one chosen; today by default.
  *  - "Stemning" (mood): Ókeypis, Stefnumót, Fjölskyldan, Rólegt, Fjör.
  *    Optional, and several can be on at once (see filters.ts).
  *
@@ -11,11 +12,12 @@ import { fitsAgeGroup, type FeedItem } from "@/lib/feed-types";
  * rules of thumb: easy to tweak below.
  */
 
-export type When = "idag" | "ikvold" | "helgin";
+/** A day ("2026-11-23", see Calendar.days), tonight, or the weekend. */
+export type When = string;
 export type Mood = "okeypis" | "stefnumot" | "fjolskyldan" | "rolegt" | "fjor";
 
+/** The picks shown after the days. */
 export const WHENS: { id: When; label: string }[] = [
-  { id: "idag", label: "Í dag" },
   { id: "ikvold", label: "Í kvöld" },
   { id: "helgin", label: "Um helgina" },
 ];
@@ -31,9 +33,14 @@ export const MOODS: { id: Mood; label: string; blurb: string }[] = [
 /** What the page knows about "now", worked out on the server so both sides agree. */
 export interface Calendar {
   today: string; // "2026-11-13"
+  // Today and the next six days, for the day picker.
+  days: { key: string; weekday: string; note: string; label: string }[]; // "2026-11-14", "lau", "á morgun" / "14. nóv", "á morgun" / "lau. 14. nóv."
   weekend: string[]; // the coming (or current) Fri–Sun that are not over: ["2026-11-13", "2026-11-14", "2026-11-15"]
   headings: Record<string, string>; // "2026-11-14" -> "Á morgun", "2026-11-15" -> "Sunnudagur 15. nóvember"
 }
+
+/** Places with opening hours: an undated one is on today's list, a dated one is on that day. */
+const PLACES: FeedItem["kind"][] = ["pool", "activity", "happy_hour", "restaurant"];
 
 /** Evening starts at 17:00 (Iceland is on UTC all year, so ISO times are local). */
 const EVENING = "17:00";
@@ -48,20 +55,23 @@ const DATE = /leikhús|tónleik|tónlist|uppistand|jazz|djass|óper|söngleik|kl
 export function fitsWhen(item: FeedItem, when: When, cal: Calendar): boolean {
   const day = item.dayKey ?? null;
   switch (when) {
-    case "idag":
-      // Dated things today; undated things (deals, open places, ideas) are "today" too.
-      return day === null || day === cal.today;
     case "ikvold": {
-      if (item.kind === "happy_hour" || item.kind === "restaurant") return true;
+      if (item.kind === "happy_hour" || item.kind === "restaurant") return day === null;
       if (item.kind === "movie") return day === cal.today && (item.showtimes ?? []).some((s) => s.time >= EVENING);
       if (item.kind === "event") return day === cal.today && (hour(item) ?? "") >= EVENING;
       return false;
     }
     case "helgin":
-      // Weekend events; plus things that are on any day anyway.
+      // Weekend events and movies; plus things that are on any day anyway
+      // (places once, from today's list, not once for every weekend day).
       if (item.kind === "event") return day !== null && cal.weekend.includes(day);
       if (item.kind === "movie") return day !== null && cal.weekend.includes(day);
-      return item.kind === "activity" || item.kind === "deal" || item.kind === "idea" || item.kind === "pool";
+      return day === null && (item.kind === "activity" || item.kind === "deal" || item.kind === "idea" || item.kind === "pool");
+    default:
+      // One day: what is on that day. Deals and ideas are any day; places
+      // without a date are today's list (their next opening).
+      if (day !== null) return day === when;
+      return !PLACES.includes(item.kind) || when === cal.today;
   }
 }
 
