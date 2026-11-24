@@ -22,6 +22,10 @@ interface RandomizerProps {
 const SPIN_MS = 4000;
 const CATEGORY_PAUSE_MS = 900;
 
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 /** A two-step category/item picker, opened from any "Veldu fyrir mig" entry point. */
 export function Randomizer({ open, items, onClose, onChooseCategory, onChooseItem }: RandomizerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -76,7 +80,10 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
 
     setCategory(chosen);
     setPhase("category-selected");
-    pauseRef.current = setTimeout(() => setPhase("spinning-item"), CATEGORY_PAUSE_MS);
+    pauseRef.current = setTimeout(
+      () => setPhase("spinning-item"),
+      prefersReducedMotion() ? 0 : CATEGORY_PAUSE_MS,
+    );
   }
 
   function itemChosen(option: WheelOption) {
@@ -191,7 +198,7 @@ function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: W
     const landing = ((-90 - middle) % 360 + 360) % 360;
     const target = 360 * 5 + landing;
     const selected = options[selectedIndex];
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = prefersReducedMotion();
     const frame = requestAnimationFrame(() => setRotation(target));
     const timer = setTimeout(() => onDone(selected), reducedMotion ? 0 : SPIN_MS);
     return () => {
