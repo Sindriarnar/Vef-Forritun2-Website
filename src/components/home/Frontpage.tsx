@@ -20,7 +20,7 @@ import {
   type DayPart,
   type Filters,
 } from "./filters";
-import { fitsWhen, mixKinds, MOODS, WHENS, type Calendar, type Mood, type When } from "./moods";
+import { fitsWhen, mixKinds, MOODS, onWeekend, type Calendar, type Mood, type When } from "./moods";
 import styles from "./Frontpage.module.css";
 
 interface FrontpageProps {
@@ -37,10 +37,9 @@ const PAGE = 24;
 const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
 /**
- * The front page: pick when (a day of the coming week, today by default,
- * or Í kvöld / Um helgina), then narrow
- * it down with any mix of filters (moods, categories, price, time of day,
- * downtown, open now, deals, search; see filters.ts). Every option shows
+ * The front page: pick a day of the coming week (today by default), then
+ * narrow it down with any mix of filters (moods, categories, price, time of
+ * day, Í kvöld, downtown, open now, deals, search; see filters.ts). Every option shows
  * how many results it would give with the other filters, and options
  * that would give nothing are greyed out.
  */
@@ -80,11 +79,11 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   // The curated rows are about today and the weekend, so they are made from those
   // items only, and not shown when a later day is picked.
   const collections = useMemo(
-    () => buildCollections(forAge.filter((i) => fitsWhen(i, calendar.today, calendar) || fitsWhen(i, "helgin", calendar)), calendar),
+    () => buildCollections(forAge.filter((i) => fitsWhen(i, calendar.today, calendar) || onWeekend(i, calendar)), calendar),
     [forAge, calendar],
   );
   const active = activeCount(filters);
-  const laterDay = when !== calendar.today && !WHENS.some((w) => w.id === when);
+  const laterDay = when !== calendar.today;
   // The curated rows are for browsing; once you filter or search, only the grid is shown.
   const browsing = active === 0 && !laterDay;
   // The extra filters in the panel (not moods, categories or search), for the badge on its button.
@@ -117,18 +116,10 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
     };
   }, [inWhen, filters, haystacks]);
 
-  const results = useMemo(() => {
-    if (when !== "helgin") return mixKinds(matching);
-    // The weekend goes day by day, then what is on any day.
-    return [
-      ...calendar.weekend.flatMap((day) => mixKinds(matching.filter((i) => i.dayKey === day))),
-      ...mixKinds(matching.filter((i) => !i.dayKey)),
-    ];
-  }, [matching, when, calendar]);
+  const results = useMemo(() => mixKinds(matching), [matching]);
 
   const shown = results.slice(0, limit);
-  const groups =
-    when === "helgin" ? groupByDay(shown, calendar) : [{ key: "all", heading: null, items: shown }];
+  const groups: { key: string; heading: string | null; items: FeedItem[] }[] = [{ key: "all", heading: null, items: shown }];
 
   const openRandomizer = useCallback(() => setRandomizerOpen(true), []);
 
@@ -165,7 +156,16 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
     }
   }, []);
 
-  const whenLabel = (WHENS.find((w) => w.id === when)?.label ?? calendar.days.find((d) => d.key === when)?.label ?? "").toLowerCase();
+  // "í dag" / "á morgun" / "lau. 14. nóv.", or with Í kvöld on: "í kvöld" / "annað kvöld" / "lau. 14. nóv. um kvöldið".
+  const dayIndex = calendar.days.findIndex((d) => d.key === when);
+  const dayLabel = (calendar.days[dayIndex]?.label ?? "").toLowerCase();
+  const whenLabel = !filters.tonight
+    ? dayLabel
+    : dayIndex === 0
+      ? "í kvöld"
+      : dayIndex === 1
+        ? "annað kvöld"
+        : `${dayLabel} um kvöldið`;
   const pickWhen = (id: When) => {
     setWhen(id);
     setLimit(PAGE);
@@ -225,12 +225,6 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
             >
               <strong>{d.weekday}</strong>
               <small>{d.note}</small>
-            </button>
-          ))}
-          <span className={styles.whenDivider} aria-hidden="true" />
-          {WHENS.map((w) => (
-            <button key={w.id} type="button" role="radio" aria-checked={when === w.id} onClick={() => pickWhen(w.id)}>
-              {w.label}
             </button>
           ))}
         </div>
@@ -457,17 +451,5 @@ function FilterOption({ label, count, on, onClick }: { label: string; count: num
       {label}
       <span className={styles.optCount}>{count}</span>
     </button>
-  );
-}
-
-/** Split the weekend list into one section per day (and one for "any day"). */
-function groupByDay(shown: FeedItem[], calendar: Calendar) {
-  const days = calendar.weekend.map((day) => ({
-    key: day,
-    heading: calendar.headings[day] ?? day,
-    items: shown.filter((i) => i.dayKey === day),
-  }));
-  return [...days, { key: "any", heading: "Hvenær sem er um helgina", items: shown.filter((i) => !i.dayKey) }].filter(
-    (g) => g.items.length > 0,
   );
 }
