@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useState } from "react";
 import type { FeedItem } from "@/lib/feed-types";
+import { formatDay, formatTime } from "@/lib/format";
 import { travelBetween } from "@/lib/item-utils";
 import { DetailDialog } from "@/components/shared/DetailDialog";
 import { Icon } from "@/components/shared/Icon";
@@ -104,7 +105,7 @@ function PlanCard({ item, onRemove, removeLabel }: { item: FeedItem; onRemove: (
       <div className="plan-info">
         <p className="post-cat">{item.categoryLabel}</p>
         <h3>{item.title}</h3>
-        <p>{[item.place, item.whenLabel, item.priceLabel].filter(Boolean).join(" · ")}</p>
+        <p>{[item.place, savedWhen(item), item.priceLabel].filter(Boolean).join(" · ")}</p>
       </div>
       <div className="plan-actions">
         <a className="btn btn-small" href={item.url} target="_blank" rel="noopener noreferrer">
@@ -117,6 +118,33 @@ function PlanCard({ item, onRemove, removeLabel }: { item: FeedItem; onRemove: (
       </div>
     </article>
   );
+}
+
+/**
+ * The date text on a saved card, worked out now from the saved start time.
+ * The item's own whenLabel was written on the day it was saved ("í dag",
+ * "Næsta sýning kl. 20:00", "Opið til 22:00") and goes stale the next day,
+ * so it is only used for items without a start time (deals, ideas).
+ */
+function savedWhen(item: FeedItem): string | null {
+  if (!item.startsAt) return item.whenLabel;
+  const day = formatDay(item.startsAt); // "í dag" / "á morgun" / "mið. 11. nóv."
+  const time = formatTime(item.startsAt);
+  switch (item.kind) {
+    case "movie":
+      return `${(item.showtimes?.length ?? 1) > 1 ? "Fyrsta sýning" : "Sýning"} ${day} kl. ${time}`;
+    case "event":
+      return `${day.charAt(0).toUpperCase()}${day.slice(1)} kl. ${time}`;
+    case "pool":
+    case "happy_hour":
+    case "activity":
+    case "restaurant":
+      return item.timeLabel === "Allan daginn"
+        ? `Opið allan daginn ${day}`
+        : `${item.kind === "happy_hour" ? "Happy hour" : "Opið"} ${day} kl. ${item.timeLabel ?? time}`;
+    default:
+      return item.whenLabel;
+  }
 }
 
 function sortByTime(items: FeedItem[]): FeedItem[] {
