@@ -149,16 +149,16 @@ interface ShowtimeQueryRow extends AgeColumns {
 }
 
 /**
- * Movies with showtimes left today, and tomorrow's movies (so there is
- * something to show late in the evening). Days without showtimes are
- * left out.
+ * Movies with showtimes left today and on the next `daysAhead` days (by
+ * default just tomorrow, so there is something to show late in the
+ * evening). Days without showtimes are left out.
  *
  * Movies are merged across sources: the same film from kvikmyndir.is,
  * Bíó Paradís and Smárabíó (same `match_key`) becomes one entry, and a
  * showtime listed by two sources (same time + cinema) is kept once,
  * preferring the cinema's own site (better ticket link/notes).
  */
-export async function getMovieDays(): Promise<MovieDay[]> {
+export async function getMovieDays(daysAhead = 1): Promise<MovieDay[]> {
   await connection();
   const db = getDb();
   const rows = db
@@ -167,9 +167,9 @@ export async function getMovieDays(): Promise<MovieDay[]> {
               starts_at, venue_name, url, note, min_age, audience
          FROM v_upcoming
         WHERE category = 'movie'
-          AND substr(starts_at, 1, 10) <= strftime('%Y-%m-%d', 'now', '+1 day')`,
+          AND substr(starts_at, 1, 10) <= strftime('%Y-%m-%d', 'now', '+' || ? || ' days')`,
     )
-    .all() as ShowtimeQueryRow[];
+    .all(daysAhead) as ShowtimeQueryRow[];
 
   // Every current movie's key with its age rating (the strictest one, if
   // sources disagree). Bíó Paradís has no ratings, so its films get the
@@ -347,6 +347,33 @@ export async function getOpenSoon(categories: OpenPlace["category"][]): Promise<
         ORDER BY o.is_open_now DESC, starts_at, o.title`,
     )
     .all(...categories) as OpenPlace[];
+}
+
+/**
+ * Pools / happy hours / activities on the coming days (tomorrow up to
+ * `daysAhead` days from now): one row per place per day it is open, with
+ * that day's first time slot. For the front page's day picker.
+ */
+export async function getPlaceDays(categories: OpenPlace["category"][], daysAhead: number): Promise<OpenPlace[]> {
+  await connection();
+  const placeholders = categories.map(() => "?").join(", ");
+  // As in getOpenSoon, SQLite returns the other columns from the MIN(starts_at) row.
+  return getDb()
+    .prepare(
+      `SELECT o.item_id, i.category, i.title, i.subtitle, i.description, i.provider, i.url,
+              i.image_url, i.price_isk, i.tags, i.min_age, i.audience, v.address, v.lat, v.lng, s.name AS source_name,
+              MIN(o.starts_at) AS starts_at, o.ends_at, 0 AS is_open_now, 0 AS is_tomorrow
+         FROM occurrences o
+         JOIN v_current_items i ON i.id = o.item_id
+         JOIN sources s         ON s.id = i.source_id
+         LEFT JOIN venues v     ON v.id = COALESCE(o.venue_id, i.venue_id)
+        WHERE i.category IN (${placeholders})
+          AND substr(o.starts_at, 1, 10) >  strftime('%Y-%m-%d', 'now')
+          AND substr(o.starts_at, 1, 10) <= strftime('%Y-%m-%d', 'now', '+' || ? || ' days')
+        GROUP BY o.item_id, substr(o.starts_at, 1, 10)
+        ORDER BY starts_at, i.title`,
+    )
+    .all(...categories, daysAhead) as OpenPlace[];
 }
 
 /** Our own ideas (scraper/content/ideas.ts) that are in season. */
