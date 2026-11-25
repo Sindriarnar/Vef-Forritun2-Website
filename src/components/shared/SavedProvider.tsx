@@ -17,6 +17,8 @@ interface SavedState {
 
 interface SavedContext extends SavedState {
   loaded: boolean;
+  randomizerEnabled: boolean;
+  setRandomizerEnabled(enabled: boolean): void;
   isFavorite(id: string): boolean;
   inPlan(id: string): boolean;
   toggleFavorite(item: FeedItem): void;
@@ -33,6 +35,7 @@ export function SavedProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SavedState>(EMPTY);
   const stateRef = useRef(state);
   const [loaded, setLoaded] = useState(false);
+  const [randomizerEnabled, setRandomizerEnabled] = useState(true);
   const router = useRouter();
 
   // Read after mount (localStorage doesn't exist on the server).
@@ -93,16 +96,19 @@ export function SavedProvider({ children }: { children: ReactNode }) {
     return {
       ...state,
       loaded,
+      randomizerEnabled,
+      setRandomizerEnabled,
       isFavorite: (id) => Boolean(state.favorites[id]),
       inPlan: (id) => Boolean(state.plan[id]),
       toggleFavorite: toggle("favorites"),
       togglePlan: toggle("plan"),
       requestRandom: () => {
+        if (!randomizerEnabled) return;
         if (window.location.pathname === "/") window.dispatchEvent(new Event("hvad:random"));
         else router.push("/#random"); // the home page opens the randomizer when it sees #random
       },
     };
-  }, [state, loaded, update, router]);
+  }, [state, loaded, randomizerEnabled, setRandomizerEnabled, update, router]);
 
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
