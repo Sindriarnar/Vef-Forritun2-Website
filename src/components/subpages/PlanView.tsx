@@ -58,7 +58,12 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
                     </li>
                   )}
                   <li>
-                    <PlanCard item={item} onRemove={() => togglePlan(item)} removeLabel="Taka af planinu" />
+                    <PlanCard
+                      item={item}
+                      onOpen={setOpen}
+                      onRemove={() => togglePlan(item)}
+                      removeLabel="Taka af planinu"
+                    />
                   </li>
                 </Fragment>
               );
@@ -77,7 +82,12 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
           <ul className="plan-list">
             {favoriteItems.map((item) => (
               <li key={item.id}>
-                <PlanCard item={item} onRemove={() => toggleFavorite(item)} removeLabel="Fjarlægja" />
+                <PlanCard
+                  item={item}
+                  onOpen={setOpen}
+                  onRemove={() => toggleFavorite(item)}
+                  removeLabel="Fjarlægja"
+                />
               </li>
             ))}
           </ul>
@@ -93,7 +103,19 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
   );
 }
 
-function PlanCard({ item, onRemove, removeLabel }: { item: FeedItem; onRemove: () => void; removeLabel: string }) {
+function PlanCard({
+  item,
+  onOpen,
+  onRemove,
+  removeLabel,
+}: {
+  item: FeedItem;
+  onOpen: (item: FeedItem) => void;
+  onRemove: () => void;
+  removeLabel: string;
+}) {
+  const hasUrl = item.url.trim().length > 0;
+
   return (
     <article className="plan-card">
       <span className="plan-thumb">
@@ -108,10 +130,16 @@ function PlanCard({ item, onRemove, removeLabel }: { item: FeedItem; onRemove: (
         <p>{[item.place, savedWhen(item), item.priceLabel].filter(Boolean).join(" · ")}</p>
       </div>
       <div className="plan-actions">
-        <a className="btn btn-small" href={item.url} target="_blank" rel="noopener noreferrer">
-          Opna
-          <Icon name="external" />
-        </a>
+        {hasUrl ? (
+          <a className="btn btn-small" href={item.url} target="_blank" rel="noopener noreferrer">
+            Opna
+            <Icon name="external" />
+          </a>
+        ) : (
+          <button type="button" className="btn btn-small" onClick={() => onOpen(item)}>
+            Opna
+          </button>
+        )}
         <button className="icon-toggle" type="button" onClick={onRemove} aria-label={`${removeLabel}: ${item.title}`}>
           <Icon name="trash" />
         </button>
