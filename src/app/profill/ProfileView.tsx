@@ -58,8 +58,7 @@ export function ProfileView({ email, name: savedName, maxNameLength }: ProfileVi
         setMessage(failed(error).message);
         return;
       }
-      router.replace("/");
-      router.refresh();
+      window.location.replace("/"); // full load so this browser forgets the account's plan sync
     });
   }
 
@@ -124,7 +123,7 @@ export function ProfileView({ email, name: savedName, maxNameLength }: ProfileVi
   );
 }
 
-/** What's on the plan. The plan is still kept in this browser (localStorage). */
+/** What's on the plan (saved to the account, see SavedProvider). */
 function PlannedEvents() {
   const { plan, loaded } = useSaved();
   const items = Object.values(plan).sort(

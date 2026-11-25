@@ -36,7 +36,7 @@ export function PlanView({ items, today, tomorrow, now }: PlanViewProps) {
             Ekkert á planinu enn. Veldu tilbúið plan eða ýttu á + við eitthvað á <Link href="/">forsíðunni</Link>.
           </p>
         ) : (
-          <p>Geymist bara í þessum vafra.</p>
+          <p>Geymist í þessum vafra, og á aðganginum þínum ef þú ert skráð/ur inn.</p>
         )}
       </div>
 

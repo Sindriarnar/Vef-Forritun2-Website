@@ -162,6 +162,15 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS sessions_account_idx ON sessions (account_id);
 
+-- A signed-in person's plan, so it follows them between devices. The whole
+-- plan as JSON (item id -> copy of the item), as the browser keeps it
+-- (src/components/shared/SavedProvider.tsx, src/app/plan/actions.ts).
+CREATE TABLE IF NOT EXISTS account_plans (
+  account_id  INTEGER PRIMARY KEY REFERENCES accounts (id) ON DELETE CASCADE,
+  plan_json   TEXT    NOT NULL,
+  updated_at  TEXT    NOT NULL
+);
+
 -- Codes sent by email. Only an HMAC of the code is stored. A code works
 -- once, until it expires, is superseded by a newer code for the same
 -- email, or has had too many wrong guesses (src/lib/auth/login-codes.ts).
