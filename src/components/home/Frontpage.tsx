@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CATEGORIES, fitsAgeGroup, type FeedCategory, type FeedItem } from "@/lib/feed-types";
+import { CATEGORIES, fitsAgeGroup, inCategory, type FeedCategory, type FeedItem } from "@/lib/feed-types";
 import { AgeFilter, useAgeGroup } from "@/components/shared/AgeFilter";
 import { DetailDialog } from "@/components/shared/DetailDialog";
 import { Icon } from "@/components/shared/Icon";
+import { useSaved } from "@/components/shared/SavedProvider";
 import { buildCollections } from "./collection-rules";
 import { Collections } from "./Collections";
 import { EventCard } from "./EventCard";
@@ -51,6 +52,7 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const [open, setOpen] = useState<FeedItem | null>(null);
   const [randomizerOpen, setRandomizerOpen] = useState(false);
   const { age, setAge } = useAgeGroup();
+  const { setRandomizerEnabled } = useSaved();
 
   const syncCategoryQuery = useCallback((category: FeedCategory | null) => {
     const url = new URL(window.location.href);
@@ -93,6 +95,24 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
     () => inWhen.filter((i) => matches(i, filters, haystacks.get(i.id) ?? "")),
     [inWhen, filters, haystacks],
   );
+  const randomizerCategories = CATEGORIES.filter(
+    (candidate) =>
+      (candidate.id !== "vidburdir" || filters.categories.includes("vidburdir")) &&
+      (candidate.id !== "tonlist" ||
+        !filters.categories.includes("vidburdir") ||
+        filters.categories.includes("tonlist")) &&
+      matching.some((item) => inCategory(item, candidate.id)),
+  );
+  const randomizerItems = matching.filter((item) =>
+    randomizerCategories.some((candidate) => inCategory(item, candidate.id)),
+  );
+  const canRandomize = randomizerItems.length > 1;
+
+  useEffect(() => {
+    setRandomizerEnabled(canRandomize);
+  }, [canRandomize, setRandomizerEnabled]);
+
+  useEffect(() => () => setRandomizerEnabled(true), [setRandomizerEnabled]);
 
   // How many results each option would give if picked, with the other filters as they are.
   const counts = useMemo(() => {
@@ -121,7 +141,9 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   const shown = results.slice(0, limit);
   const groups: { key: string; heading: string | null; items: FeedItem[] }[] = [{ key: "all", heading: null, items: shown }];
 
-  const openRandomizer = useCallback(() => setRandomizerOpen(true), []);
+  const openRandomizer = useCallback(() => {
+    if (canRandomize) setRandomizerOpen(true);
+  }, [canRandomize]);
 
   const chooseRandomCategory = useCallback((next: FeedCategory) => {
     setFilters({ ...NO_FILTERS, categories: [next] });
@@ -248,7 +270,12 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
               </button>
             );
           })}
-          <button type="button" className={`${styles.mood} ${styles.dice}`} onClick={openRandomizer}>
+          <button
+            type="button"
+            className={`${styles.mood} ${styles.dice}`}
+            onClick={openRandomizer}
+            disabled={!canRandomize}
+          >
             <Icon name="dice" />
             <strong>Veldu fyrir mig</strong>
             <small>Komdu mér á óvart</small>
@@ -426,7 +453,8 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
       <DetailDialog item={open} onClose={() => setOpen(null)} />
       <Randomizer
         open={randomizerOpen}
-        items={inWhen}
+        items={randomizerItems}
+        categories={randomizerCategories}
         onClose={() => setRandomizerOpen(false)}
         onChooseCategory={chooseRandomCategory}
         onChooseItem={openRandomItem}

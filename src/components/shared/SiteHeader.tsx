@@ -17,7 +17,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
 /** Top bar + the main navigation (left rail on desktop, bottom bar on phones). */
 export function SiteHeader() {
   const pathname = usePathname();
-  const { plan, favorites, loaded, requestRandom } = useSaved();
+  const { plan, favorites, loaded, randomizerEnabled, requestRandom } = useSaved();
   const planCount = Object.keys(plan).length;
   const favoriteCount = Object.keys(favorites).length;
 
@@ -44,7 +44,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="header-actions">
-          <button className="header-button" type="button" onClick={requestRandom} title="Veldu eitthvað fyrir mig">
+          <button
+            className="header-button"
+            type="button"
+            onClick={requestRandom}
+            title="Veldu eitthvað fyrir mig"
+            disabled={!randomizerEnabled}
+          >
             <Icon name="dice" />
             <span>Veldu fyrir mig</span>
           </button>

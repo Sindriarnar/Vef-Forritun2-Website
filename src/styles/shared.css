@@ -498,10 +498,15 @@ code {
   background: var(--text);
 }
 
-.header-button:hover {
+.header-button:hover:not(:disabled) {
   color: #fff;
   border-color: var(--text);
   background: #272c30;
+}
+
+.header-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .icon-button {

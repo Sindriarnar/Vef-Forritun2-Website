@@ -14,6 +14,7 @@ type TextMetricsRatio = { width: number; height: number };
 interface RandomizerProps {
   open: boolean;
   items: FeedItem[];
+  categories: { id: FeedCategory; label: string }[];
   onClose: () => void;
   onChooseCategory: (category: FeedCategory) => void;
   onChooseItem: (item: FeedItem) => void;
@@ -27,16 +28,13 @@ function prefersReducedMotion() {
 }
 
 /** A two-step category/item picker, opened from any "Veldu fyrir mig" entry point. */
-export function Randomizer({ open, items, onClose, onChooseCategory, onChooseItem }: RandomizerProps) {
+export function Randomizer({ open, items, categories, onClose, onChooseCategory, onChooseItem }: RandomizerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const pauseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [phase, setPhase] = useState<Phase>("menu");
   const [mode, setMode] = useState<Mode>("category");
   const [category, setCategory] = useState<FeedCategory | null>(null);
 
-  const categories = CATEGORIES.filter((candidate) =>
-    items.some((item) => inCategory(item, candidate.id)),
-  ).map((candidate) => ({ id: candidate.id, label: candidate.label }));
   const itemCategories = categories;
   const categoryLabel = CATEGORIES.find((candidate) => candidate.id === category)?.label;
   const categoryItems = category ? items.filter((item) => inCategory(item, category)) : [];
@@ -56,9 +54,14 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
   );
 
   function start(modeToStart: Mode) {
-    if (modeToStart === "item" && itemCategories.length === 0) return;
+    if (categories.length === 0) return;
     setMode(modeToStart);
     setCategory(null);
+    if (categories.length === 1) {
+      const chosen = CATEGORIES.find((candidate) => candidate.id === categories[0].id)?.id;
+      if (chosen) continueAfterCategory(chosen, modeToStart);
+      return;
+    }
     setPhase("spinning-category");
   }
 
@@ -72,7 +75,11 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
   function categoryChosen(option: WheelOption) {
     const chosen = CATEGORIES.find((candidate) => candidate.id === option.id)?.id;
     if (!chosen) return;
-    if (mode === "category") {
+    continueAfterCategory(chosen, mode);
+  }
+
+  function continueAfterCategory(chosen: FeedCategory, selectedMode: Mode) {
+    if (selectedMode === "category") {
       closePicker();
       onChooseCategory(chosen);
       return;
@@ -116,7 +123,7 @@ export function Randomizer({ open, items, onClose, onChooseCategory, onChooseIte
             <h2>Hvað eigum við að velja?</h2>
             <p className={styles.hint}>Hlutaval tekur mið af aldri og dagavali.</p>
             <div className={styles.choices}>
-              <button type="button" onClick={() => start("category")} disabled={!categories.length}>
+              <button type="button" onClick={() => start("category")} disabled={categories.length < 2}>
                 <Icon name="dice" />
                 Flokkur
               </button>
@@ -198,11 +205,11 @@ function Wheel({ options, onDone }: { options: WheelOption[]; onDone: (option: W
     const landing = ((-90 - middle) % 360 + 360) % 360;
     const target = 360 * 5 + landing;
     const selected = options[selectedIndex];
-    const reducedMotion = prefersReducedMotion();
-    const frame = requestAnimationFrame(() => setRotation(target));
-    const timer = setTimeout(() => onDone(selected), reducedMotion ? 0 : SPIN_MS);
+    const skipAnimation = options.length === 1 || prefersReducedMotion();
+    const frame = skipAnimation ? null : requestAnimationFrame(() => setRotation(target));
+    const timer = setTimeout(() => onDone(selected), skipAnimation ? 0 : SPIN_MS);
     return () => {
-      cancelAnimationFrame(frame);
+      if (frame !== null) cancelAnimationFrame(frame);
       clearTimeout(timer);
     };
   }, [options, onDone]);
