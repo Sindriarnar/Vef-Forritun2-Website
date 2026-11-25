@@ -5,6 +5,7 @@ import { requestCodeAction, verifyCodeAction } from "./actions";
 import styles from "./login.module.css";
 
 export function LoginForm() {
+  const hydrated = useHydrated();
   const [email, setEmail] = useState("");
   // The address the code was actually sent to; the field can't change it later.
   const [sentTo, setSentTo] = useState("");
