@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useHydrated } from "@/lib/use-hydrated";
 import { Icon, type IconName } from "./Icon";
 import { Logo } from "./Logo";
 import { useSaved } from "./SavedProvider";
@@ -17,6 +18,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
 /** Top bar + the main navigation (left rail on desktop, bottom bar on phones). */
 export function SiteHeader() {
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const { plan, favorites, loaded, requestRandom } = useSaved();
   const planCount = Object.keys(plan).length;
   const favoriteCount = Object.keys(favorites).length;
@@ -34,7 +36,7 @@ export function SiteHeader() {
               key={item.href}
               href={item.href}
               className="nav-link"
-              aria-current={pathname === item.href ? "page" : undefined}
+              aria-current={hydrated && pathname === item.href ? "page" : undefined}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>

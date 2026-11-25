@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useState, type FormEvent } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import styles from "./login.module.css";
 
 const DELIVERY_UNAVAILABLE = "Sending kóða er ekki virk enn.";
 
 export function LoginForm() {
+  const hydrated = useHydrated();
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
   const [message, setMessage] = useState("");
@@ -49,7 +51,7 @@ export function LoginForm() {
               onChange={(event) => setEmail(event.target.value)}
             />
           </label>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={!hydrated}>
             Senda kóða
           </button>
         </form>
@@ -67,7 +69,7 @@ export function LoginForm() {
               required
             />
           </label>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={!hydrated}>
             Staðfesta kóða
           </button>
           <button type="button" className="btn" onClick={() => setMessage("Ekki er hægt að endursenda kóða enn.")}>
