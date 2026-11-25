@@ -1,9 +1,19 @@
 "use client";
 
 import { useCallback, useState, useTransition, type FormEvent } from "react";
-import { requestCodeAction, verifyCodeAction } from "./actions";
+import { requestCodeAction, verifyCodeAction, type LoginActionState } from "./actions";
 import { useHydrated } from "@/lib/use-hydrated";
 import styles from "./login.module.css";
+
+/**
+ * A server action call that never reached our code (network down, the
+ * server rejected the request, the page is out of date after a deploy).
+ * Shown as a message instead of crashing the form.
+ */
+function failed(error: unknown): LoginActionState {
+  console.error("Login action failed", error);
+  return { ok: false, message: "Eitthvað fór úrskeiðis. Endurhlaðið síðunni og reynið aftur." };
+}
 
 export function LoginForm() {
   const hydrated = useHydrated();
@@ -24,7 +34,7 @@ export function LoginForm() {
 
   function sendCode(address: string) {
     startTransition(async () => {
-      const result = await requestCodeAction(address);
+      const result = await requestCodeAction(address).catch(failed);
       setMessage(result.message);
       if (result.ok) {
         setSentTo(address);
@@ -42,7 +52,7 @@ export function LoginForm() {
   function verifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startTransition(async () => {
-      const result = await verifyCodeAction(sentTo, code);
+      const result = await verifyCodeAction(sentTo, code).catch(failed);
       setMessage(result.message);
       if (result.ok) setStep("done");
     });
@@ -71,7 +81,7 @@ export function LoginForm() {
               onChange={(event) => setEmail(event.target.value)}
             />
           </label>
-          <button type="submit" className="btn btn-primary" disabled={pending}>
+          <button type="submit" className="btn btn-primary" disabled={!hydrated || pending}>
             Senda kóða
           </button>
         </form>
@@ -94,7 +104,7 @@ export function LoginForm() {
               onChange={(event) => setCode(event.target.value)}
             />
           </label>
-          <button type="submit" className="btn btn-primary" disabled={pending}>
+          <button type="submit" className="btn btn-primary" disabled={!hydrated || pending}>
             Staðfesta kóða
           </button>
           <button type="button" className="btn" onClick={() => sendCode(sentTo)} disabled={pending}>

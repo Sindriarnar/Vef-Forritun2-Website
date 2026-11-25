@@ -1,11 +1,15 @@
+import nodemailer, { type Transporter } from "nodemailer";
+
 /**
  * Sends sign-in code emails. Server-only.
  *
  * EMAIL_DELIVERY picks how (see .env.example):
  *   - "console" (default outside production): prints the code in the
  *     server log, so sign-in works locally without an email account.
+ *   - "gmail": sends from a Gmail account over SMTP (GMAIL_USER and
+ *     GMAIL_APP_PASSWORD, an app password, not the account password).
  *   - "resend": sends through the Resend HTTP API (RESEND_API_KEY,
- *     EMAIL_FROM). Which service we use for real is decided in #48.
+ *     EMAIL_FROM).
  */
 
 export async function sendLoginCodeEmail(to: string, code: string, minutesValid: number) {
@@ -20,6 +24,12 @@ export async function sendLoginCodeEmail(to: string, code: string, minutesValid:
     case "console":
       console.info(`[login] Sign-in code for ${to}: ${code} (EMAIL_DELIVERY=console)`);
       return;
+    case "gmail": {
+      const user = process.env.GMAIL_USER;
+      const from = process.env.EMAIL_FROM || `"Hvað á að gera?" <${user}>`;
+      await gmail().sendMail({ from, to, subject, text });
+      return;
+    }
     case "resend": {
       const apiKey = process.env.RESEND_API_KEY;
       const from = process.env.EMAIL_FROM;
@@ -35,4 +45,18 @@ export async function sendLoginCodeEmail(to: string, code: string, minutesValid:
     default:
       throw new Error(`EMAIL_DELIVERY is not configured (got "${delivery}")`);
   }
+}
+
+// One SMTP connection pool per process, kept on globalThis so hot reloads
+// in `next dev` don't open a new one each time (same as the db connection).
+const globalForMail = globalThis as unknown as { __hvadGmail?: Transporter };
+
+function gmail(): Transporter {
+  if (globalForMail.__hvadGmail) return globalForMail.__hvadGmail;
+  const user = process.env.GMAIL_USER;
+  // Google shows app passwords in groups of four ("abcd efgh ..."); spaces don't matter.
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, "");
+  if (!user || !pass) throw new Error("GMAIL_USER and GMAIL_APP_PASSWORD must be set");
+  globalForMail.__hvadGmail = nodemailer.createTransport({ service: "gmail", pool: true, auth: { user, pass } });
+  return globalForMail.__hvadGmail;
 }
