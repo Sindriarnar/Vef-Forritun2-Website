@@ -2,6 +2,7 @@
 
 import { useCallback, useState, useTransition, type FormEvent } from "react";
 import { requestCodeAction, verifyCodeAction } from "./actions";
+import { useHydrated } from "@/lib/use-hydrated";
 import styles from "./login.module.css";
 
 export function LoginForm() {
