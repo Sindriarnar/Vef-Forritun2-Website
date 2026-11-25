@@ -146,8 +146,21 @@ CREATE TABLE IF NOT EXISTS accounts (
   id               INTEGER PRIMARY KEY,
   email            TEXT    NOT NULL UNIQUE,
   created_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-  last_sign_in_at  TEXT
+  last_sign_in_at  TEXT,
+  display_name     TEXT    -- asked for after the first sign-in; NULL until then
 );
+
+-- Who is signed in (issue #50). The browser keeps a random token in an
+-- httpOnly cookie; only its SHA-256 hash is stored here, so a leaked
+-- database can't be used to sign in. See src/lib/auth/session.ts.
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash  TEXT    PRIMARY KEY,
+  account_id  INTEGER NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
+  created_at  TEXT    NOT NULL,
+  expires_at  TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS sessions_account_idx ON sessions (account_id);
 
 -- Codes sent by email. Only an HMAC of the code is stored. A code works
 -- once, until it expires, is superseded by a newer code for the same

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Schibsted_Grotesk } from "next/font/google";
 import Link from "next/link";
+import { AccountNav } from "@/components/shared/AccountNav";
 import { AgeProvider } from "@/components/shared/AgeFilter";
 import { LogoMark } from "@/components/shared/Logo";
 import { SavedProvider } from "@/components/shared/SavedProvider";
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <a className="skip-link" href="#main">
               Fara beint í efni
             </a>
-            <SiteHeader />
+            <SiteHeader account={<AccountNav />} />
             <main id="main" tabIndex={-1}>
               {children}
             </main>

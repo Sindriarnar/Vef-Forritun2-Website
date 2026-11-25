@@ -1,0 +1,79 @@
+.form {
+  display: grid;
+  gap: 14px;
+  max-width: 360px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.field input {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--bg-1);
+  font-weight: 400;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  margin-top: 32px;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  gap: 2px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--bg-1);
+}
+
+.when {
+  grid-row: span 2;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.title {
+  font-weight: 700;
+}
+
+.place {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+@media (max-width: 520px) {
+  .item {
+    grid-template-columns: 1fr;
+  }
+
+  .when {
+    grid-row: auto;
+  }
+}

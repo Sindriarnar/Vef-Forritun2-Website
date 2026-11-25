@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type FormEvent } from "react";
 import { requestCodeAction, verifyCodeAction, type LoginActionState } from "./actions";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -17,6 +18,7 @@ function failed(error: unknown): LoginActionState {
 
 export function LoginForm() {
   const hydrated = useHydrated();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   // The address the code was actually sent to; the field can't change it later.
   const [sentTo, setSentTo] = useState("");
@@ -54,7 +56,11 @@ export function LoginForm() {
     startTransition(async () => {
       const result = await verifyCodeAction(sentTo, code).catch(failed);
       setMessage(result.message);
-      if (result.ok) setStep("done");
+      if (result.ok) {
+        setStep("done");
+        // Signed in: the profile asks for a name the first time.
+        router.replace("/profill");
+      }
     });
   }
 

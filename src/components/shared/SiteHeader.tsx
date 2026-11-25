@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 import { Icon, type IconName } from "./Icon";
 import { Logo } from "./Logo";
@@ -12,11 +13,12 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/events", label: "Viðburðir", icon: "calendar" },
   { href: "/map", label: "Kort", icon: "map" },
   { href: "/plan", label: "Planið", icon: "check" },
-  { href: "/login", label: "Innskráning", icon: "user" },
 ];
 
-/** Top bar + the main navigation (left rail on desktop, bottom bar on phones). */
-export function SiteHeader() {
+/**
+ * þetta er bara til að sýna notanda sem er innskráður, ekki til að skrá notanda inn. Það er gert í LoginForm.tsx mbk Sölvi :)
+ */
+export function SiteHeader({ account }: { account: ReactNode }) {
   const pathname = usePathname();
   const hydrated = useHydrated();
   const { plan, favorites, loaded, requestRandom } = useSaved();
@@ -43,6 +45,7 @@ export function SiteHeader() {
               {item.href === "/plan" && loaded && planCount > 0 && <span className="nav-count">{planCount}</span>}
             </Link>
           ))}
+          {account}
         </nav>
 
         <div className="header-actions">

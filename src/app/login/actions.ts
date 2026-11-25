@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { requestLoginCode, verifyLoginCode } from "@/lib/auth/login-codes";
+import { startSession } from "@/lib/auth/session";
 
 export type LoginActionState = { ok: boolean; message: string };
 
@@ -36,7 +37,8 @@ export async function requestCodeAction(email: string): Promise<LoginActionState
 export async function verifyCodeAction(email: string, code: string): Promise<LoginActionState> {
   const result = verifyLoginCode(String(email ?? ""), String(code ?? ""), await clientIp());
   if (result.ok) {
-    // Keeping the user signed in is #50.
+    await startSession(result.accountId);
+    // The form then goes to /profill, which asks for a name if there is none yet.
     return { ok: true, message: "Kóðinn er staðfestur. Þú ert skráð/ur inn." };
   }
   return result.reason === "rate_limited"
