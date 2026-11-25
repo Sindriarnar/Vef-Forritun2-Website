@@ -253,5 +253,6 @@ SELECT
 FROM v_current_items i
 JOIN sources s ON s.id = i.source_id
 WHERE i.category IN ('food_deal', 'activity_deal')
+  AND (i.valid_from IS NULL OR i.valid_from <= strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
   AND (i.valid_until IS NULL OR i.valid_until >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 ORDER BY i.discount_percent DESC, i.price_isk ASC;
