@@ -97,7 +97,9 @@ export function Frontpage({ items, calendar, todayLabel, updatedLabel }: Frontpa
   );
   const randomizerCategories = CATEGORIES.filter(
     (candidate) =>
-      (candidate.id !== "vidburdir" || filters.categories.includes("vidburdir")) &&
+      (candidate.id !== "vidburdir" ||
+        filters.categories.length === 0 ||
+        filters.categories.includes("vidburdir")) &&
       (candidate.id !== "tonlist" ||
         !filters.categories.includes("vidburdir") ||
         filters.categories.includes("tonlist")) &&
