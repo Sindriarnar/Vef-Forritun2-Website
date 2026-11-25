@@ -283,7 +283,8 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
   // i.e. the venue of the *next* date.
   return getDb()
     .prepare(
-      `SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, description, source_name,
+      `SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle,
+              (SELECT i.description FROM items i WHERE i.id = v_upcoming.item_id) AS description, source_name,
               min_age, audience, lat, lng,
               MIN(starts_at) AS next_start,
               COUNT(DISTINCT substr(starts_at, 1, 10)) AS date_count
@@ -311,7 +312,8 @@ export async function getEventDays({ withinDays = 60 } = {}): Promise<EventRow[]
               COUNT(*)     OVER (PARTITION BY item_id)                     AS date_count,
               ROW_NUMBER() OVER (PARTITION BY item_id ORDER BY next_start) AS day_number
          FROM (
-           SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, description, source_name,
+           SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle,
+                  (SELECT i.description FROM items i WHERE i.id = v_upcoming.item_id) AS description, source_name,
                   min_age, audience, lat, lng,
                   MIN(starts_at) AS next_start,     -- the first time that day
                   COUNT(*)       AS times_that_day
