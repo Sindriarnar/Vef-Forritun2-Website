@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useState, useTransition, type FormEvent } from "react";
+import { requestCodeAction, verifyCodeAction } from "./actions";
 import styles from "./login.module.css";
-
-const DELIVERY_UNAVAILABLE = "Sending kóða er ekki virk enn.";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
+  // The address the code was actually sent to; the field can't change it later.
+  const [sentTo, setSentTo] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code" | "done">("email");
   const [message, setMessage] = useState("");
+  const [pending, startTransition] = useTransition();
 
   const focusEmail = useCallback((input: HTMLInputElement | null) => {
     if (input?.value) input.focus();
@@ -17,25 +20,41 @@ export function LoginForm() {
     input?.focus();
   }, []);
 
+  function sendCode(address: string) {
+    startTransition(async () => {
+      const result = await requestCodeAction(address);
+      setMessage(result.message);
+      if (result.ok) {
+        setSentTo(address);
+        setCode("");
+        setStep("code");
+      }
+    });
+  }
+
   function requestCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStep("code");
-    setMessage(DELIVERY_UNAVAILABLE);
+    sendCode(email);
   }
 
   function verifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("Staðfesting kóða er ekki virk enn.");
+    startTransition(async () => {
+      const result = await verifyCodeAction(sentTo, code);
+      setMessage(result.message);
+      if (result.ok) setStep("done");
+    });
   }
 
   function changeEmail() {
     setStep("email");
+    setCode("");
     setMessage("");
   }
 
   return (
     <div className={styles.form}>
-      {step === "email" ? (
+      {step === "email" && (
         <form className={styles.form} onSubmit={requestCode}>
           <label className={styles.field}>
             Netfang
@@ -45,17 +64,19 @@ export function LoginForm() {
               name="email"
               autoComplete="email"
               required
+              readOnly={pending}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
           </label>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={pending}>
             Senda kóða
           </button>
         </form>
-      ) : (
+      )}
+      {step === "code" && (
         <form className={styles.form} onSubmit={verifyCode}>
-          <p className="hint" id="login-code-hint">Sláðu inn einnota kóðann fyrir {email}.</p>
+          <p className="hint" id="login-code-hint">Sláðu inn einnota kóðann fyrir {sentTo}.</p>
           <label className={styles.field}>
             Einnota kóði
             <input
@@ -64,16 +85,20 @@ export function LoginForm() {
               inputMode="numeric"
               autoComplete="one-time-code"
               aria-describedby="login-code-hint"
+              pattern="\s*\d{6}\s*"
+              maxLength={8}
               required
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
             />
           </label>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={pending}>
             Staðfesta kóða
           </button>
-          <button type="button" className="btn" onClick={() => setMessage("Ekki er hægt að endursenda kóða enn.")}>
+          <button type="button" className="btn" onClick={() => sendCode(sentTo)} disabled={pending}>
             Senda kóða aftur
           </button>
-          <button type="button" className="btn" onClick={changeEmail}>
+          <button type="button" className="btn" onClick={changeEmail} disabled={pending}>
             Breyta netfangi
           </button>
         </form>
@@ -82,4 +107,3 @@ export function LoginForm() {
     </div>
   );
 }
-

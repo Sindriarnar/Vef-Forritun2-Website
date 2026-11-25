@@ -137,6 +137,46 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
 );
 
 -- =====================================================================
+-- Sign-in with one-time email codes (issue #49).
+-- =====================================================================
+
+-- One row per person who has signed in. The email (lower-cased) is the
+-- identity, so signing in again with the same email gives the same id.
+CREATE TABLE IF NOT EXISTS accounts (
+  id               INTEGER PRIMARY KEY,
+  email            TEXT    NOT NULL UNIQUE,
+  created_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  last_sign_in_at  TEXT
+);
+
+-- Codes sent by email. Only an HMAC of the code is stored. A code works
+-- once, until it expires, is superseded by a newer code for the same
+-- email, or has had too many wrong guesses (src/lib/auth/login-codes.ts).
+CREATE TABLE IF NOT EXISTS login_codes (
+  id              INTEGER PRIMARY KEY,
+  email           TEXT    NOT NULL,
+  code_hash       TEXT    NOT NULL,
+  created_at      TEXT    NOT NULL,
+  expires_at      TEXT    NOT NULL,
+  attempts        INTEGER NOT NULL DEFAULT 0,
+  consumed_at     TEXT,   -- set when the code signed someone in
+  invalidated_at  TEXT    -- set when superseded or after too many attempts
+);
+
+CREATE INDEX IF NOT EXISTS login_codes_email_idx ON login_codes (email, created_at);
+
+-- Recent sign-in requests, used for rate limiting. kind is e.g.
+-- 'request:email', 'request:ip' or 'verify:ip'; key is the email or IP.
+CREATE TABLE IF NOT EXISTS login_rate_events (
+  id          INTEGER PRIMARY KEY,
+  kind        TEXT NOT NULL,
+  key         TEXT NOT NULL,
+  created_at  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS login_rate_events_idx ON login_rate_events (kind, key, created_at);
+
+-- =====================================================================
 -- Views — the website queries these instead of the raw tables.
 -- =====================================================================
 
