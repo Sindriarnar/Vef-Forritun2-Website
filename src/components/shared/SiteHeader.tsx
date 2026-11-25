@@ -11,6 +11,7 @@ const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/events", label: "Viðburðir", icon: "calendar" },
   { href: "/map", label: "Kort", icon: "map" },
   { href: "/plan", label: "Planið", icon: "check" },
+  { href: "/login", label: "Innskráning", icon: "user" },
 ];
 
 /** Top bar + the main navigation (left rail on desktop, bottom bar on phones). */
