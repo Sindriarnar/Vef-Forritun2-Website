@@ -157,7 +157,7 @@ JOIN (
 WHERE i.last_seen_at >= r.last_ok_run
   AND r.last_ok_run >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-3 days');
 
--- Everything that happens from now on, one row per occurrence.
+-- Future occurrences plus events still in progress when their end is known.
 DROP VIEW IF EXISTS v_upcoming;
 CREATE VIEW v_upcoming AS
 SELECT
@@ -181,13 +181,21 @@ SELECT
   COALESCE(ov.name, iv.name)    AS venue_name,
   COALESCE(ov.lat,  iv.lat)     AS lat,
   COALESCE(ov.lng,  iv.lng)     AS lng,
-  s.name                        AS source_name
+  s.name                        AS source_name,
+  CASE
+    WHEN i.category = 'event'
+      AND o.starts_at <= strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+      AND o.ends_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+    THEN 1
+    ELSE 0
+  END                           AS is_live
 FROM occurrences o
 JOIN v_current_items i ON i.id = o.item_id
 JOIN sources s  ON s.id  = i.source_id
 LEFT JOIN venues ov ON ov.id = o.venue_id
 LEFT JOIN venues iv ON iv.id = i.venue_id
-WHERE o.starts_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now');
+WHERE o.starts_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+   OR (i.category = 'event' AND o.ends_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now'));
 
 -- Only what is still left today ("Hvað á að gera í dag?").
 DROP VIEW IF EXISTS v_today;

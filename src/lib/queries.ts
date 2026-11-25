@@ -62,7 +62,7 @@ export interface EventRow extends AgeColumns {
   image_url: string | null;
   item_url: string;
   venue_name: string | null;
-  next_start: string; // the next start, or the first start on this row's day
+  next_start: string; // the current start if ongoing, otherwise the next start
   date_count: number; // how many days the event is on
   price_isk: number | null;
   tags: string | null;
@@ -71,6 +71,7 @@ export interface EventRow extends AgeColumns {
   source_name: string;
   lat: number | null; // the venue of this row's date, when we know where it is
   lng: number | null;
+  is_live: 0 | 1;
   // Only from getEventDays (one row per event per day):
   times_that_day?: number;
   day_number?: number; // 1 = the event's first day in the list
@@ -276,7 +277,7 @@ function venueKey(name: string | null): string {
   return normalised;
 }
 
-/** Upcoming events, one row per event with its next date (for the front page). */
+/** Upcoming events and currently ongoing events, one row per event (for the front page). */
 export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): Promise<EventRow[]> {
   await connection();
   // SQLite returns the other columns from the row that has MIN(starts_at),
@@ -286,7 +287,8 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
       `SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, description, source_name,
               min_age, audience, lat, lng,
               MIN(starts_at) AS next_start,
-              COUNT(DISTINCT substr(starts_at, 1, 10)) AS date_count
+              COUNT(DISTINCT substr(starts_at, 1, 10)) AS date_count,
+              MAX(is_live) AS is_live
          FROM v_upcoming
         WHERE category = 'event'
           AND starts_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '+' || ? || ' days')
@@ -298,10 +300,10 @@ export async function getUpcomingEvents({ limit = 60, withinDays = 60 } = {}): P
 }
 
 /**
- * Upcoming events for the events page: one row per event *per day it is
- * on*, so a show that runs for weeks is listed on every one of its days
- * (and "what's on the 21st?" finds it). No LIMIT: every day in the
- * period is complete.
+ * Events for the events page, one row per event per day it appears on.
+ * Includes ongoing events; a show that runs for weeks stays listed on
+ * every day (and "what's on the 21st?" finds it). No LIMIT: every day in
+ * the period is complete.
  */
 export async function getEventDays({ withinDays = 60 } = {}): Promise<EventRow[]> {
   await connection();
@@ -314,7 +316,8 @@ export async function getEventDays({ withinDays = 60 } = {}): Promise<EventRow[]
            SELECT item_id, title, image_url, item_url, venue_name, price_isk, tags, subtitle, description, source_name,
                   min_age, audience, lat, lng,
                   MIN(starts_at) AS next_start,     -- the first time that day
-                  COUNT(*)       AS times_that_day
+                  COUNT(*)       AS times_that_day,
+                  MAX(is_live)   AS is_live
              FROM v_upcoming
             WHERE category = 'event'
               AND starts_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '+' || ? || ' days')

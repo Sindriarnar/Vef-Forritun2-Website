@@ -142,7 +142,7 @@ export function eventToItem(event: EventRow): FeedItem {
     discountPercent: null,
     tag: null,
     whenLabel: `${formatDay(event.next_start)} kl. ${time}`,
-    isLive: false,
+    isLive: event.is_live === 1,
     startsAt: event.next_start,
     timeLabel: time,
     dayKey: day,
