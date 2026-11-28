@@ -67,6 +67,9 @@ export interface ScrapedItem {
    * `previous` and skip fetching pages that haven't changed.
    */
   version?: string | null;
+  /** Source text needed to regenerate occurrences without re-fetching an unchanged page. */
+  scheduleText?: string[];
+  /** Omit to keep stored occurrences; pass [] to clear them. */
   occurrences?: ScrapedOccurrence[];
 }
 

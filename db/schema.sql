@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS items (
   -- "last modified" time). Lets a slow source skip pages that haven't
   -- changed since the last run (see scraper/sources/sundlaugar.ts).
   version             TEXT,
+  schedule_text       TEXT,               -- serialized source data for regenerating recurring occurrences
   first_seen_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
   last_seen_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
   UNIQUE (source_id, external_id)

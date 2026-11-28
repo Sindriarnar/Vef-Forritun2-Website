@@ -40,8 +40,8 @@ export function finishRun(
 
 /**
  * The items a source saved in earlier runs, by externalId (see
- * PreviousItems). Occurrences aren't included: opening hours and
- * showtimes are always built fresh.
+ * PreviousItems). Occurrences aren't included; recurring sources may
+ * retain the source text needed to regenerate upcoming dates.
  */
 export function loadPrevious(db: DB, sourceId: number): PreviousItems {
   const rows = db
@@ -69,6 +69,7 @@ export function loadPrevious(db: DB, sourceId: number): PreviousItems {
     valid_from: string | null;
     valid_until: string | null;
     version: string | null;
+    schedule_text: string | null;
     venue_name: string | null;
     address: string | null;
     lat: number | null;
@@ -99,16 +100,26 @@ export function loadPrevious(db: DB, sourceId: number): PreviousItems {
         validFrom: row.valid_from,
         validUntil: row.valid_until,
         version: row.version,
+        scheduleText: parseScheduleText(row.schedule_text),
       },
     ]),
   );
+}
+
+function parseScheduleText(value: string | null): string[] | undefined {
+  if (value === null) return undefined;
+  const parsed: unknown = JSON.parse(value);
+  if (!Array.isArray(parsed) || !parsed.every((line) => typeof line === "string")) {
+    throw new Error("Invalid cached schedule text in items.schedule_text");
+  }
+  return parsed;
 }
 
 /**
  * Saves scraped items in a single transaction:
  *  - items are upserted on (source_id, external_id), so re-running the
  *    scraper updates existing rows and bumps last_seen_at
- *  - an item's occurrences are replaced with the freshly scraped ones
+ *  - provided occurrences replace the saved ones; omitted occurrences are preserved
  *  - venues are created on first sight; known details (address,
  *    coordinates) are filled in but never overwritten with NULL
  */
@@ -128,11 +139,11 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
     `INSERT INTO items (
         source_id, external_id, category, title, match_key, subtitle, description, url,
         image_url, provider, venue_id, price_isk, original_price_isk,
-        discount_percent, tags, min_age, audience, valid_from, valid_until, version
+        discount_percent, tags, min_age, audience, valid_from, valid_until, version, schedule_text
      ) VALUES (
         @sourceId, @externalId, @category, @title, @matchKey, @subtitle, @description, @url,
         @imageUrl, @provider, @venueId, @priceIsk, @originalPriceIsk,
-        @discountPercent, @tags, @minAge, @audience, @validFrom, @validUntil, @version
+        @discountPercent, @tags, @minAge, @audience, @validFrom, @validUntil, @version, @scheduleText
      )
      ON CONFLICT (source_id, external_id) DO UPDATE SET
         category           = excluded.category,
@@ -151,6 +162,7 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
         min_age            = excluded.min_age,
         audience           = excluded.audience,
         version            = excluded.version,
+        schedule_text      = excluded.schedule_text,
         valid_from        = excluded.valid_from,
         valid_until        = excluded.valid_until,
         last_seen_at       = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
@@ -200,18 +212,21 @@ export function saveItems(db: DB, sourceId: number, items: ScrapedItem[]) {
         validFrom: item.validFrom ?? null,
         validUntil: item.validUntil ?? null,
         version: item.version ?? null,
+        scheduleText: item.scheduleText === undefined ? null : JSON.stringify(item.scheduleText),
       }) as { id: number };
 
-      deleteOccurrences.run(itemId);
-      for (const occ of item.occurrences ?? []) {
-        insertOccurrence.run({
-          itemId,
-          startsAt: occ.startsAt,
-          endsAt: occ.endsAt ?? null,
-          venueId: venueId(occ.venue, occ.venueDetails),
-          url: occ.url ?? null,
-          note: occ.note ?? null,
-        });
+      if (item.occurrences !== undefined) {
+        deleteOccurrences.run(itemId);
+        for (const occ of item.occurrences) {
+          insertOccurrence.run({
+            itemId,
+            startsAt: occ.startsAt,
+            endsAt: occ.endsAt ?? null,
+            venueId: venueId(occ.venue, occ.venueDetails),
+            url: occ.url ?? null,
+            note: occ.note ?? null,
+          });
+        }
       }
     }
   });
