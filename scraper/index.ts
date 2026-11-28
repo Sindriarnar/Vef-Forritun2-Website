@@ -24,6 +24,7 @@ async function main() {
   const db = getDb();
   const http = new PoliteHttp();
   let failures = 0;
+  const totalStarted = Date.now();
 
   for (const source of selected) {
     const sourceId = ensureSource(db, source);
@@ -49,6 +50,7 @@ async function main() {
     }
   }
 
+  console.log(`Total runtime: ${((Date.now() - totalStarted) / 1000).toFixed(1)}s`);
   db.close();
   if (failures) process.exit(1);
 }

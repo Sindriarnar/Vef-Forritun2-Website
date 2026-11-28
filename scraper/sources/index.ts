@@ -33,7 +33,7 @@ export const sources: Source[] = [
   listasafn,
   smaralind,
   kringlan,
-  // every pool in the country (address and size; no opening hours)
+  // every pool in the country (address, size, and opening hours when published)
   sundlaugar,
   // our own ideas
   hugmyndir,

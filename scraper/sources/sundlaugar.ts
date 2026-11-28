@@ -1,6 +1,14 @@
 import * as cheerio from "cheerio";
 import type { PreviousItems, ScrapedItem, Source } from "../types";
 import { coordsFromMapUrl } from "../lib/geo";
+import {
+  hoursTableToOccurrences,
+  parseIcelandicDate,
+  parseOpenHours,
+  rangesToOccurrences,
+  upcomingDates,
+  type TimeRange,
+} from "../lib/schedule";
 import { clean } from "../lib/text";
 
 /**
@@ -16,12 +24,12 @@ import { clean } from "../lib/text";
  *     coordinates; most only repeat the address, so those pools have no
  *     coordinates (we don't use a geocoding service).
  *
- * One page per pool is a lot of requests, so a pool's page is only
- * fetched when the API says it changed since last time (`version`).
- * The first run takes a few minutes; later runs take seconds.
+ * A pool's page is only fetched when the API says it changed since last
+ * time (`version`), and changed pages are fetched with bounded concurrency.
+ * The first run fetches all pages; later runs take seconds.
  *
- * Opening hours are not read: they are written differently on every
- * page (summer/winter, holidays).
+ * Weekly and date-ranged opening hours are read when a page lists them.
+ * Holiday exceptions are left out rather than guessed.
  */
 const BASE = "https://sundlaugar.is";
 
@@ -30,7 +38,7 @@ const BASE = "https://sundlaugar.is";
  * found). It is part of every item's `version`, so all pages are
  * fetched again once.
  */
-const PARSER = 2;
+const PARSER = 4;
 const API = `${BASE}/wp-json/wp/v2/sundlaugasafn?per_page=100&_fields=slug,link,title,modified,class_list`;
 
 interface ApiPool {
@@ -63,7 +71,7 @@ export const sundlaugar: Source = {
   slug: "sundlaugar-is",
   name: "Sundlaugar.is",
   baseUrl: BASE,
-  requestDelayMs: 1000, // robots.txt has no crawl-delay; keep the first crawl near two minutes.
+  requestDelayMs: 250, // robots.txt has no crawl-delay; cap this source at about 4 requests/second.
 
   async scrape(http, previous) {
     const pools: ApiPool[] = [];
@@ -78,7 +86,6 @@ export const sundlaugar: Source = {
     const failed: string[] = [];
     let nextIndex = 0;
     let completed = 0;
-    let consecutiveFailures = 0;
     let stoppedReason: string | null = null;
 
     const worker = async () => {
@@ -89,19 +96,16 @@ export const sundlaugar: Source = {
 
         if (unchanged) {
           items[index] = unchanged;
-          consecutiveFailures = 0;
         } else {
           try {
             items[index] = parsePoolPage(await getTwice(http, pool.link), pool);
-            consecutiveFailures = 0;
           } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
             failed.push(pool.slug);
-            consecutiveFailures++;
             const before = previous.get(pool.slug);
             if (before) items[index] = before;
-            if (consecutiveFailures >= 4) {
-              stoppedReason = `four consecutive pool pages failed; last was ${pool.slug}: ${reason}`;
+            if (failed.length > pools.length / 4) {
+              stoppedReason = `more than a quarter of pool pages failed; last was ${pool.slug}: ${reason}`;
             }
           }
         }
@@ -113,7 +117,7 @@ export const sundlaugar: Source = {
       }
     };
 
-    await Promise.all(Array.from({ length: Math.min(4, pools.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(8, pools.length) }, worker));
     if (stoppedReason) throw new Error(`Sundlaugar.is: stopping early; ${stoppedReason}`);
     if (failed.length > pools.length / 4) {
       throw new Error(`Sundlaugar.is: ${failed.length} of ${pools.length} pool pages could not be read`);
@@ -139,7 +143,11 @@ const versionOf = (pool: ApiPool) => `${pool.modified}#${PARSER}`;
 /** The item saved last time, if the pool's page hasn't changed since. */
 function reuse(previous: PreviousItems, pool: ApiPool): ScrapedItem | null {
   const before = previous.get(pool.slug);
-  return before && before.version === versionOf(pool) ? before : null;
+  if (!before || before.version !== versionOf(pool) || before.scheduleText === undefined) return null;
+  return {
+    ...before,
+    occurrences: openingHoursToOccurrences(before.scheduleText, new Date(), before.title),
+  };
 }
 
 export function parsePoolPage(html: string, pool: ApiPool): ScrapedItem {
@@ -150,7 +158,7 @@ export function parsePoolPage(html: string, pool: ApiPool): ScrapedItem {
   const region = REGIONS[classes.find((c) => c.startsWith("category-"))?.slice(9) ?? ""] ?? null;
   const kind = KINDS[classes.find((c) => c.startsWith("tag-"))?.slice(4) ?? ""] ?? "Sundlaug";
 
-  const lines = contentLines($);
+  const { lines, hours } = contentSections($);
   const size = poolSizes(lines);
   const coords = coordsFromMapUrl($('iframe[src*="maps"]').first().attr("src"));
 
@@ -167,35 +175,95 @@ export function parsePoolPage(html: string, pool: ApiPool): ScrapedItem {
     venueDetails: { address, lat: coords?.lat ?? null, lng: coords?.lng ?? null },
     tags: [kind, region].filter((t): t is string => Boolean(t)),
     version: versionOf(pool),
+    scheduleText: hours,
+    occurrences: openingHoursToOccurrences(hours, new Date(), name),
   };
 }
 
 /**
- * The page's own text as lines, up to the opening hours ("Afgreiðslutími").
- * <br> counts as a line break, since facts are often listed that way:
- * "Útisundlaug 25×12 metrar<br>Innisundlaug 12×7 metrar<br>Heitir pottar 2."
+ * The page's own text as lines before and after the opening-hours heading.
+ * <br> counts as a line break, since facts are often listed that way.
  */
-function contentLines($: cheerio.CheerioAPI): string[] {
+function contentSections($: cheerio.CheerioAPI): { lines: string[]; hours: string[] } {
   const lines: string[] = [];
-  let done = false;
+  const hours: string[] = [];
+  let readingHours = false;
+  let hoursDone = false;
   // The site header has its own "Opnunartímar um páska" banner: only the page body counts.
   $("header, footer, .elementor-location-header, .elementor-location-footer").remove();
   $('[data-widget_type="image-box.default"], [data-widget_type="text-editor.default"], [data-widget_type="heading.default"]').each(
     (_, widget) => {
-      if (done) return;
+      if (hoursDone) return;
       const $widget = $(widget).clone();
       $widget.find("br").replaceWith("\n");
       $widget.find("p, li, div, h1, h2, h3, h4").append("\n");
       for (const line of $widget.text().split("\n").map(clean).filter(Boolean)) {
         if (/^(afgreiðslutím|opnunartím|opening hours)/i.test(line)) {
-          done = true;
-          return;
+          readingHours = true;
+          const remainder = line.replace(
+            /^(?:afgreiðslutím\p{L}*|opnunartím\p{L}*|opening hours)\s*[:\-–—]?\s*/iu,
+            "",
+          );
+          if (remainder) hours.push(remainder);
+          continue;
         }
-        lines.push(line);
+        if (readingHours) {
+          if (/^(myndir|gjaldskrá|staðsetning)\b/i.test(line)) {
+            hoursDone = true;
+            return;
+          }
+          hours.push(line);
+        } else {
+          lines.push(line);
+        }
       }
     },
   );
-  return lines;
+  return { lines, hours };
+}
+
+/** Turn labelled opening-hour lines into occurrences for the next few days. */
+function openingHoursToOccurrences(lines: string[], now: Date, venue: string) {
+  const rows: [string, string][] = [];
+  const seasonal: { start: number; end: number; hours: TimeRange | "closed" }[] = [];
+  for (const line of lines) {
+    const dates = line.match(/(\d{1,2}\.\s*[\p{L}]+)\s*[–—-]\s*(\d{1,2}\.\s*[\p{L}]+)\s*:?\s*(.*)$/iu);
+    if (dates) {
+      const start = parseIcelandicDate(dates[1], now);
+      const end = parseIcelandicDate(dates[2], now);
+      const hours = parseOpenHours(dates[3]);
+      if (start && end && hours) seasonal.push({ start: monthDay(start), end: monthDay(end), hours });
+      continue;
+    }
+
+    const match = line.match(/\d{1,2}(?:[:.]\d{2})?\s*(?:-|–|—|til)\s*\d{1,2}(?:[:.]\d{2})?/i);
+    if (!match || match.index === undefined) continue;
+    const label = line
+      .slice(0, match.index)
+      .replace(/[\s:|]*(?:kl\.?)?[\s:|]*$/i, "")
+      .trim();
+    if (label) rows.push([label, match[0]]);
+  }
+  const weekly = hoursTableToOccurrences(rows, now, venue);
+  if (seasonal.length === 0) return weekly;
+
+  const weeklyByDate = new Map(weekly.map((occurrence) => [occurrence.startsAt.slice(0, 10), occurrence]));
+  return upcomingDates(now).flatMap((date) => {
+    const day = monthDay(date);
+    const schedule = seasonal.find(({ start, end }) =>
+      start <= end ? day >= start && day <= end : day >= start || day <= end,
+    );
+    if (schedule) {
+      return schedule.hours === "closed" ? [] : rangesToOccurrences(date, [schedule.hours], { venue });
+    }
+    const occurrence = weeklyByDate.get(date);
+    return occurrence ? [occurrence] : [];
+  });
+}
+
+/** "2026-06-01" -> 601, for seasonal ranges that repeat each year. */
+function monthDay(date: string): number {
+  return Number(date.slice(5, 7) + date.slice(8, 10));
 }
 
 const NUMBER = String.raw`(\d{1,3}(?:[.,]\d{1,2})?)`;
